@@ -46,8 +46,8 @@ body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;backgr
 
 .section{margin-bottom:24px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;transition:box-shadow .2s;}
 .section.sortable-ghost{opacity:.4;box-shadow:0 0 0 2px var(--accent);}
-.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:8px;}
-.section-title{font-size:17px;font-weight:600;outline:none;border-radius:4px;padding:2px 6px;margin:-2px -6px;min-width:40px;}
+.section-header{display:flex;align-items:center;margin-bottom:14px;gap:8px;}
+.section-title{font-size:17px;font-weight:600;outline:none;border-radius:4px;padding:2px 6px;margin:-2px -6px;min-width:40px;flex:1;text-align:left;}
 .section-title:focus{box-shadow:0 0 0 2px var(--accent);background:rgba(108,92,231,.08);}
 .drag-grip{margin-right:8px;color:var(--border);font-size:16px;cursor:grab;user-select:none;display:inline-block;transition:color .2s;line-height:1;}
 .drag-grip:hover{color:var(--accent);}
@@ -185,7 +185,7 @@ footer{text-align:center;padding:30px 0 16px;color:var(--text2);font-size:11px;}
 @media(max-width:768px){.cards{grid-template-columns:1fr!important;}.sidebar.open{width:240px;}.dept-detail{padding:20px;}}
 </style>
 </head>
-<body>
+<body spellcheck="false">
 
 <div class="toolbar">
   <div style="display:flex;align-items:center;gap:10px;">
