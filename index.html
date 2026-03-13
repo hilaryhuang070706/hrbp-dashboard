@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>研发HRBP月报看板 | 2026年3月</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117; --card: #1a1d27; --card-hover: #222632; --border: #2a2e3a;
+    --text: #e4e6eb; --text-secondary: #8b8fa3;
+    --accent: #6c5ce7; --accent-light: #a29bfe;
+    --red: #ff6b6b; --red-bg: rgba(255,107,107,0.12);
+    --orange: #ffa94d; --orange-bg: rgba(255,169,77,0.12);
+    --green: #51cf66; --green-bg: rgba(81,207,102,0.12);
+    --blue: #339af0; --blue-bg: rgba(51,154,240,0.12);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: -apple-system,'PingFang SC','Microsoft YaHei',sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+  .container { max-width:1400px; margin:0 auto; padding:24px; }
+
+  /* Toolbar */
+  .toolbar { position:sticky; top:0; z-index:100; background:rgba(15,17,23,0.95); backdrop-filter:blur(12px); border-bottom:1px solid var(--border); padding:12px 24px; margin:-24px -24px 24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
+  .toolbar h1 { font-size:22px; font-weight:700; background:linear-gradient(135deg,var(--accent-light),var(--blue)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .toolbar-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .btn { padding:8px 16px; border-radius:8px; font-size:13px; cursor:pointer; border:1px solid var(--border); background:var(--card); color:var(--text); transition:all 0.2s; display:flex; align-items:center; gap:6px; }
+  .btn:hover { background:var(--card-hover); }
+  .btn-accent { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .btn-accent:hover { background:#5b4bd5; }
+  .btn-green { background:var(--green); border-color:var(--green); color:#000; }
+  .btn-red { background:var(--red); border-color:var(--red); color:#fff; }
+  .edit-indicator { font-size:12px; color:var(--green); display:none; }
+  .edit-indicator.show { display:inline; }
+  .period-badge { background:var(--card); border:1px solid var(--border); padding:6px 16px; border-radius:16px; font-size:13px; color:var(--text-secondary); }
+
+  /* Editable */
+  [contenteditable=true] { outline:none; border-radius:4px; transition:box-shadow 0.2s; }
+  body.edit-mode [contenteditable=true]:hover { box-shadow:0 0 0 2px rgba(108,92,231,0.3); }
+  body.edit-mode [contenteditable=true]:focus { box-shadow:0 0 0 2px var(--accent); background:rgba(108,92,231,0.08); }
+
+  /* Stats Cards */
+  .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:32px; }
+  .stat-card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:24px; transition:all 0.2s; position:relative; }
+  .stat-card:hover { background:var(--card-hover); transform:translateY(-2px); }
+  .stat-card .label { font-size:13px; color:var(--text-secondary); margin-bottom:8px; }
+  .stat-card .value { font-size:36px; font-weight:700; }
+  .stat-card .sub { font-size:12px; color:var(--text-secondary); margin-top:4px; }
+  .stat-card.danger .value { color:var(--red); }
+  .stat-card.warning .value { color:var(--orange); }
+  .stat-card.info .value { color:var(--blue); }
+  .stat-card.success .value { color:var(--green); }
+
+  /* Section */
+  .section { margin-bottom:32px; }
+  .section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .section-title { font-size:18px; font-weight:600; display:flex; align-items:center; gap:8px; }
+  .section-title::before { content:''; width:4px; height:20px; background:var(--accent); border-radius:2px; }
+
+  /* Alert Cards */
+  .alerts-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(380px,1fr)); gap:16px; }
+  .alert-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; border-left:4px solid var(--red); }
+  .alert-card.orange { border-left-color:var(--orange); }
+  .alert-card.blue { border-left-color:var(--blue); }
+  .alert-card h3 { font-size:15px; font-weight:600; margin-bottom:10px; }
+  .alert-list { list-style:none; }
+  .alert-list li { padding:8px 0; font-size:13px; color:var(--text-secondary); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .alert-list li:last-child { border-bottom:none; }
+  .alert-list li .alert-text { flex:1; }
+  .alert-list li strong { color:var(--text); }
+  .tag { display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:500; cursor:pointer; }
+  .tag-red { background:var(--red-bg); color:var(--red); }
+  .tag-orange { background:var(--orange-bg); color:var(--orange); }
+  .tag-green { background:var(--green-bg); color:var(--green); }
+  .tag-blue { background:var(--blue-bg); color:var(--blue); }
+  .delete-btn { display:none; width:20px; height:20px; border-radius:4px; border:none; background:var(--red-bg); color:var(--red); cursor:pointer; font-size:14px; flex-shrink:0; }
+  body.edit-mode .delete-btn { display:flex; align-items:center; justify-content:center; }
+  .add-btn { display:none; width:100%; padding:8px; border:1px dashed var(--border); border-radius:8px; background:transparent; color:var(--text-secondary); cursor:pointer; font-size:13px; margin-top:8px; transition:all 0.2s; }
+  .add-btn:hover { border-color:var(--accent); color:var(--accent); }
+  body.edit-mode .add-btn { display:block; }
+
+  /* Charts */
+  .charts-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .chart-card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:24px; }
+  .chart-card h3 { font-size:15px; font-weight:600; margin-bottom:16px; color:var(--text-secondary); }
+  .chart-container { position:relative; height:300px; }
+
+  /* Leader Table */
+  .table-wrap { background:var(--card); border:1px solid var(--border); border-radius:16px; overflow-x:auto; }
+  .leader-table { width:100%; border-collapse:separate; border-spacing:0; min-width:700px; }
+  .leader-table th { text-align:left; padding:12px 16px; font-size:12px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid var(--border); }
+  .leader-table td { padding:14px 16px; font-size:14px; border-bottom:1px solid var(--border); }
+  .leader-table tr:hover td { background:var(--card-hover); }
+  .leader-table .actions-col { width:40px; }
+  .status-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
+  .status-dot.green { background:var(--green); }
+  .status-dot.orange { background:var(--orange); }
+  .status-dot.red { background:var(--red); }
+  .status-select { background:var(--card); color:var(--text); border:1px solid var(--border); border-radius:4px; padding:4px 8px; font-size:12px; }
+
+  /* BP Progress */
+  .bp-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:16px; }
+  .bp-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; }
+  .bp-card h3 { font-size:16px; font-weight:600; margin-bottom:4px; }
+  .bp-card .scope { font-size:12px; color:var(--text-secondary); margin-bottom:14px; }
+  .progress-bar { height:6px; background:var(--border); border-radius:3px; margin-bottom:16px; overflow:hidden; position:relative; }
+  .progress-bar .fill { height:100%; border-radius:3px; transition:width 0.5s ease; }
+  .progress-input { display:none; width:50px; background:var(--card); color:var(--text); border:1px solid var(--border); border-radius:4px; padding:2px 6px; font-size:12px; margin-bottom:8px; }
+  body.edit-mode .progress-input { display:inline-block; }
+  .task-list { min-height:20px; }
+  .task-item { display:flex; align-items:flex-start; gap:8px; padding:6px 0; font-size:13px; }
+  .task-item .icon { flex-shrink:0; margin-top:2px; cursor:pointer; }
+  .task-item .task-text { flex:1; }
+  .task-done { color:var(--green); }
+  .task-pending { color:var(--orange); }
+
+  /* Report Section */
+  .report-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(380px,1fr)); gap:16px; }
+  .report-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; }
+  .report-card h3 { font-size:15px; font-weight:600; margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid var(--border); }
+  .report-list { padding-left:20px; }
+  .report-list li { padding:6px 0; font-size:13px; color:var(--text-secondary); display:flex; align-items:center; gap:8px; }
+  .report-list li .report-text { flex:1; }
+  .report-list li strong { color:var(--text); }
+
+  /* Timeline */
+  .timeline { display:flex; flex-direction:column; gap:16px; }
+  .timeline-item { display:flex; gap:16px; align-items:flex-start; }
+  .timeline-item .tl-status { min-width:80px; text-align:right; color:var(--text-secondary); font-size:13px; }
+  .timeline-item .tl-dot { width:12px; height:12px; border-radius:50%; margin-top:4px; flex-shrink:0; cursor:pointer; }
+  .timeline-item .tl-content { flex:1; }
+
+  /* Toast */
+  .toast { position:fixed; bottom:24px; right:24px; background:var(--green); color:#000; padding:12px 20px; border-radius:10px; font-size:14px; font-weight:500; opacity:0; transform:translateY(20px); transition:all 0.3s; z-index:200; pointer-events:none; }
+  .toast.show { opacity:1; transform:translateY(0); }
+
+  footer { text-align:center; padding:40px 0 20px; color:var(--text-secondary); font-size:12px; }
+
+  @media(max-width:768px) {
+    .charts-grid { grid-template-columns:1fr; }
+    .alerts-grid,.report-grid { grid-template-columns:1fr; }
+    .toolbar h1 { font-size:18px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <!-- Sticky Toolbar -->
+  <div class="toolbar">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <h1>研发HRBP月报看板</h1>
+      <span class="period-badge" contenteditable="false">2026年3月 | 截止 3/13</span>
+    </div>
+    <div class="toolbar-actions">
+      <span class="edit-indicator" id="editIndicator">编辑模式已开启</span>
+      <button class="btn btn-accent" id="editToggle" onclick="toggleEditMode()">✏️ 开启编辑</button>
+      <button class="btn btn-green" onclick="saveData()">💾 保存</button>
+      <button class="btn" onclick="exportHTML()">📤 导出HTML</button>
+      <button class="btn btn-red" onclick="resetData()" style="font-size:12px;">↻ 重置</button>
+    </div>
+  </div>
+
+  <!-- Key Stats -->
+  <div class="stats-grid" id="statsGrid">
+    <div class="stat-card danger">
+      <div class="label" contenteditable="false">本月离职/待离职</div>
+      <div class="value" contenteditable="false">55</div>
+      <div class="sub" contenteditable="false">自驾43 · ITED 11 · 无人机1</div>
+    </div>
+    <div class="stat-card warning">
+      <div class="label" contenteditable="false">关键风险人员</div>
+      <div class="value" contenteditable="false">9</div>
+      <div class="sub" contenteditable="false">含上海算法5人 · 唐承川 · 石磊等</div>
+    </div>
+    <div class="stat-card info">
+      <div class="label" contenteditable="false">研发总人数</div>
+      <div class="value" contenteditable="false">1,100+</div>
+      <div class="sub" contenteditable="false">三大一级部门合计</div>
+    </div>
+    <div class="stat-card warning">
+      <div class="label" contenteditable="false">新任干部培养中</div>
+      <div class="value" contenteditable="false">5</div>
+      <div class="sub" contenteditable="false">陈炯 · 薛冰 · Jason · 文恒 · 徐琳</div>
+    </div>
+    <div class="stat-card info">
+      <div class="label" contenteditable="false">待招HC</div>
+      <div class="value" contenteditable="false">40+</div>
+      <div class="sub" contenteditable="false">数字化效能部为主</div>
+    </div>
+    <div class="stat-card success">
+      <div class="label" contenteditable="false">BP团队</div>
+      <div class="value" contenteditable="false">4</div>
+      <div class="sub" contenteditable="false">vinnie · tt · yvette · 冷静</div>
+    </div>
+  </div>
+
+  <!-- Alerts -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">红灯预警</div>
+    </div>
+    <div class="alerts-grid">
+      <div class="alert-card" id="alertTurnover">
+        <h3 contenteditable="false">🔴 离职潮</h3>
+        <ul class="alert-list">
+          <li><span class="alert-text" contenteditable="false"><strong>AI模型部</strong> 离职15人，算法人才保留是核心</span><span class="tag tag-red" contenteditable="false">最严重</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
+          <li><span class="alert-text" contenteditable="false"><strong>嵌入式底软</strong> 1月至今离职5+待离职2，离职率同比↑6%</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
+          <li><span class="alert-text" contenteditable="false"><strong>系统工程交付部</strong> 多人在看机会，离职率持续攀高</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
+          <li><span class="alert-text" contenteditable="false"><strong>数字化效能部</strong> 希文/东霖/张轶离职造成冲击</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
+        </ul>
+        <button class="add-btn" onclick="addAlertItem(this)">+ 添加预警项</button>
+      </div>
+      <div class="alert-card orange" id="alertRisk">
+        <h3 contenteditable="false">🟡 关键人员风险</h3>
+        <ul class="alert-list">
+          <li><span class="alert-text" contenteditable="false"><strong>唐承川、石磊</strong> — 数字化效能部标记风险</span><span class="tag tag-orange" contenteditable="false">关注</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
+          <li><span class="alert-text" contenteditable="false"><strong>上海算法团队</strong> — 15人访谈，5人识别离职风险</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
+          <li><span class="alert-text" contenteditable="false"><strong>jiale.huang</strong> — 机电三级leader待离职，竞业待确认</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
+          <li><span class="alert-text" contenteditable="false"><strong>ITED骨干</strong> — 遭sven挖猎</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
+        </ul>
+        <button class="add-btn" onclick="addAlertItem(this)">+ 添加预警项</button>
+      </div>
+      <div class="alert-card blue" id="alertConflict">
+        <h3 contenteditable="false">🔵 协作冲突</h3>
+        <ul class="alert-list">
+          <li><span class="alert-text" contenteditable="false"><strong>自驾 vs ST</strong> — 经营单元人员带宽和考核归属有摩擦</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
+          <li><span class="alert-text" contenteditable="false"><strong>ITED内部</strong> — 协作矛盾声音多，已建立改进动作</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
+          <li><span class="alert-text" contenteditable="false"><strong>系统架构部dosa</strong> — 集成与架构两组流程冲突频发</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
+          <li><span class="alert-text" contenteditable="false"><strong>数据工程 vs 自驾</strong> — 数据闭环协同阻力大</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
+        </ul>
+        <button class="add-btn" onclick="addAlertItem(this)">+ 添加预警项</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="section">
+    <div class="section-title">数据概览</div>
+    <div class="charts-grid">
+      <div class="chart-card"><h3>各二级部门人数分布（自驾研发部）</h3><div class="chart-container"><canvas id="headcountChart"></canvas></div></div>
+      <div class="chart-card"><h3>离职人数分布</h3><div class="chart-container"><canvas id="turnoverChart"></canvas></div></div>
+      <div class="chart-card"><h3>三大一级部门人数对比</h3><div class="chart-container"><canvas id="deptChart"></canvas></div></div>
+      <div class="chart-card"><h3>新任干部培养进度</h3><div class="chart-container"><canvas id="leaderChart"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- Leader Tracking -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">新任干部上岗追踪</div>
+      <button class="add-btn" style="width:auto;margin:0;display:none;" id="addLeaderBtn" onclick="addLeaderRow()">+ 添加干部</button>
+    </div>
+    <div class="table-wrap">
+      <table class="leader-table" id="leaderTable">
+        <thead><tr><th>姓名</th><th>部门</th><th>状态</th><th>评价要点</th><th>风险</th><th class="actions-col"></th></tr></thead>
+        <tbody>
+          <tr><td contenteditable="false"><strong>陈炯</strong></td><td contenteditable="false">嵌入式平台部</td><td><select class="status-select" onchange="updateDot(this)" disabled><option value="green" selected>见习中</option><option value="orange">待答辩</option><option value="red">暂缓</option></select></td><td contenteditable="false">管理带宽80%，业务/团队规划有思考，需提升团队影响力</td><td><span class="tag tag-orange" contenteditable="false">底软离职潮</span></td><td><button class="delete-btn" onclick="this.closest('tr').remove()">×</button></td></tr>
+          <tr><td contenteditable="false"><strong>薛冰</strong></td><td contenteditable="false">系统架构部</td><td><select class="status-select" onchange="updateDot(this)" disabled><option value="green" selected>见习中</option><option value="orange">待答辩</option><option value="red">暂缓</option></select></td><td contenteditable="false">有意识转变，但过于事无巨细不抓重点，部门缺乏凝聚力</td><td><span class="tag tag-orange" contenteditable="false">部门没聚成气</span></td><td><button class="delete-btn" onclick="this.closest('tr').remove()">×</button></td></tr>
+          <tr><td contenteditable="false"><strong>Jason</strong></td><td contenteditable="false">机电系统部</td><td><select class="status-select" onchange="updateDot(this)" disabled><option value="green">见习中</option><option value="orange" selected>待答辩</option><option value="red">暂缓</option></select></td><td contenteditable="false">管理认知强，杀伐果断，不陷入个人感情</td><td><span class="tag tag-orange" contenteditable="false">对部分人有冲击</span></td><td><button class="delete-btn" onclick="this.closest('tr').remove()">×</button></td></tr>
+          <tr><td contenteditable="false"><strong>文恒</strong></td><td contenteditable="false">数据工程部</td><td><select class="status-select" onchange="updateDot(this)" disabled><option value="green">见习中</option><option value="orange">待答辩</option><option value="red" selected>暂缓</option></select></td><td contenteditable="false">指令型管理，团队驱动不足，两位三级leader离职</td><td><span class="tag tag-red" contenteditable="false">团队动荡</span></td><td><button class="delete-btn" onclick="this.closest('tr').remove()">×</button></td></tr>
+          <tr><td contenteditable="false"><strong>徐琳</strong></td><td contenteditable="false">流程IT部</td><td><select class="status-select" onchange="updateDot(this)" disabled><option value="green">见习中</option><option value="orange" selected>待答辩</option><option value="red">暂缓</option></select></td><td contenteditable="false">素养较好，管理经验浅，需加强技术深度理解</td><td><span class="tag tag-orange" contenteditable="false">三级有意见</span></td><td><button class="delete-btn" onclick="this.closest('tr').remove()">×</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- BP Progress -->
+  <div class="section">
+    <div class="section-title">下属BP工作进展</div>
+    <div class="bp-grid">
+      <div class="bp-card">
+        <h3 contenteditable="false">vinnie.zeng</h3>
+        <div class="scope" contenteditable="false">智研软件 · AI软件 · 嵌入式 · 控制器产品 · 机电 · 无人机（6个部门）</div>
+        <input type="range" class="progress-input" min="0" max="100" value="75" oninput="updateProgress(this)" disabled>
+        <div class="progress-bar"><div class="fill" style="width:75%;background:linear-gradient(90deg,var(--accent),var(--blue))"></div></div>
+        <div class="task-list">
+          <div class="task-item"><span class="icon task-done" onclick="toggleTask(this)">✓</span><span class="task-text" contenteditable="false">AI软件部四级小组阵型梳理初步完成</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
+          <div class="task-item"><span class="icon task-done" onclick="toggleTask(this)">✓</span><span class="task-text" contenteditable="false">嵌入式陈炯培养+丁瑞管理提升会4期</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
+          <div class="task-item"><span class="icon task-done" onclick="toggleTask(this)">✓</span><span class="task-text" contenteditable="false">控制器产品部backup培养计划完成</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
+          <div class="task-item"><span class="icon task-done" onclick="toggleTask(this)">✓</span><span class="task-text" contenteditable="false">机电Jason上岗+组织阵型宣导</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
+          <div class="task-item"><span class="icon task-done" onclick="toggleTask(this)">✓</span><span class="task-text" contenteditable="false">无人机组织诊断报告完成</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
+          <div class="task-item"><span class="icon task-pending" onclick="toggleTask(this)">◷</span><span class="task-text" contenteditable="false">智研软件部TTE问卷回收中</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
+        </div>
+        <button class="add-btn" onclick="addTaskItem(this)">+ 添加任务</button>
+      </div>
+      <div class="bp-card">
+        <h3 contenteditable="false">tt.guo</h3>
+        <div class="scope" contenteditable="false">AI模型 · 行为智能 · 时空数据 · 行车产品 · 泊车产品（5个部门）</div>
+        <input type="range" class="progress-input" min="0" max="100" value="60" oninput="updateProgress(this)" disabled>
+        <div class="progress-bar"><div class="fill" style="width:60%;background:linear-gradient(90deg,var(--accent),var(--green))"></div></div>
+        <div class="task-list">
+          <div class="task-item"><span class="icon task-done" onclick="toggleTask(this)">✓</span><span class="task-text" contenteditable="false">上海算法15人1v1访谈，输出诊断报告</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
+          <div class="task-item"><span class="icon task-done" onclick="toggleTask(this)">✓</span><span class="task-text" contenteditable="false">行为智能部团队管理阵型梳理完成</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
+          <div class="task-item"><span class="icon task-done" onclick="toggleTask(this)">✓</span><span class="task-text" contenteditable="false">行车产品部GTT新阵型落地运行1个月</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
+          <div class="task-item"><span class="icon task-pending" onclick="toggleTask(this)">◷</span><span class="task-text" contenteditable="false">AI模型部可视化人才看板3月落地</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
+          <div class="task-item"><span class="icon task-pending" onclick="toggleTask(this)">◷</span><span class="task-text" contenteditable="false">量产vs预研分工，涉及40+人调整</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
+          <div class="task-item"><span class="icon task-pending" onclick="toggleTask(this)">◷</span><span class="task-text" contenteditable="false">汪哲培IDP计划进行中</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
+        </div>
+        <button class="add-btn" onclick="addTaskItem(this)">+ 添加任务</button>
+      </div>
+      <div class="bp-card">
+        <h3 contenteditable="false">yvette.he</h3>
+        <div class="scope" contenteditable="false">系统工程交付 · 系统架构 · 测试 · 功能安全（4个部门）</div>
+        <input type="range" class="progress-input" min="0" max="100" value="65" oninput="updateProgress(this)" disabled>
+        <div class="progress-bar"><div class="fill" style="width:65%;background:linear-gradient(90deg,var(--blue),var(--green))"></div></div>
+        <div class="task-list">
+          <div class="task-item"><span class="icon task-done" onclick="toggleTask(this)">✓</span><span class="task-text" contenteditable="false">SED内部人员能力摸排完成</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
+          <div class="task-item"><span class="icon task-done" onclick="toggleTask(this)">✓</span><span class="task-text" contenteditable="false">TPL职责梳理完成，下周业务评审</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
+          <div class="task-item"><span class="icon task-done" onclick="toggleTask(this)">✓</span><span class="task-text" contenteditable="false">薛冰培养：业务地图+双周导师沟通</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
+          <div class="task-item"><span class="icon task-done" onclick="toggleTask(this)">✓</span><span class="task-text" contenteditable="false">功能安全高T张弛顺利landing</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
+          <div class="task-item"><span class="icon task-pending" onclick="toggleTask(this)">◷</span><span class="task-text" contenteditable="false">测试部张鹏上岗培养计划制定中</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
+          <div class="task-item"><span class="icon task-pending" onclick="toggleTask(this)">◷</span><span class="task-text" contenteditable="false">SED年度组织诊断访谈待启动</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
+        </div>
+        <button class="add-btn" onclick="addTaskItem(this)">+ 添加任务</button>
+      </div>
+      <div class="bp-card">
+        <h3 contenteditable="false">冷静</h3>
+        <div class="scope" contenteditable="false">数字化效能部整体（数据工程 · 基础架构 · 流程IT · 信息安全）</div>
+        <input type="range" class="progress-input" min="0" max="100" value="45" oninput="updateProgress(this)" disabled>
+        <div class="progress-bar"><div class="fill" style="width:45%;background:linear-gradient(90deg,var(--orange),var(--accent))"></div></div>
+        <div class="task-list">
+          <div class="task-item"><span class="icon task-done" onclick="toggleTask(this)">✓</span><span class="task-text" contenteditable="false">部门看板搭建（在职+离职）</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
+          <div class="task-item"><span class="icon task-done" onclick="toggleTask(this)">✓</span><span class="task-text" contenteditable="false">协同提升方案已输出</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
+          <div class="task-item"><span class="icon task-pending" onclick="toggleTask(this)">◷</span><span class="task-text" contenteditable="false">三级leader系列培养交流进行中</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
+          <div class="task-item"><span class="icon task-pending" onclick="toggleTask(this)">◷</span><span class="task-text" contenteditable="false">文恒团队稳定性建设持续关注</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
+          <div class="task-item"><span class="icon task-pending" onclick="toggleTask(this)">◷</span><span class="task-text" contenteditable="false">徐琳暂代流程IT，2个月考察期</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
+        </div>
+        <button class="add-btn" onclick="addTaskItem(this)">+ 添加任务</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Report to Leaders -->
+  <div class="section">
+    <div class="section-title">向一号位汇报建议</div>
+    <div class="report-grid">
+      <div class="report-card">
+        <h3 contenteditable="false">📋 向马陆汇报</h3>
+        <ol class="report-list">
+          <li><span class="report-text" contenteditable="false"><strong>离职形势：</strong>自驾部已提单+待提单43人，AI模型部15人最多，算法人才保留是重点</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
+          <li><span class="report-text" contenteditable="false"><strong>移动基模Kickoff后：</strong>需明确量产与预研人员分工（涉及40+人），避免交付和探索两头不落</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
+          <li><span class="report-text" contenteditable="false"><strong>嵌入式底软：</strong>今年已离/待离7人，丁瑞新任leader需继续关注</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
+        </ol>
+        <button class="add-btn" onclick="addReportItem(this)">+ 添加要点</button>
+      </div>
+      <div class="report-card">
+        <h3 contenteditable="false">📋 向王斌汇报</h3>
+        <ol class="report-list">
+          <li><span class="report-text" contenteditable="false"><strong>ITED离职：</strong>11人 + 骨干被sven挖，需重点关注团队稳定性</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
+          <li><span class="report-text" contenteditable="false"><strong>数据工程部：</strong>文恒团队管理问题 + 数据闭环与自驾协同阻力，转M暂缓</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
+          <li><span class="report-text" contenteditable="false"><strong>流程IT：</strong>新任leader徐琳上岗，三级有意见，需关注团队氛围</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
+          <li><span class="report-text" contenteditable="false"><strong>风险人员：</strong>唐承川、石磊有风险标记</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
+        </ol>
+        <button class="add-btn" onclick="addReportItem(this)">+ 添加要点</button>
+      </div>
+      <div class="report-card">
+        <h3 contenteditable="false">📋 向黄永结汇报</h3>
+        <ol class="report-list">
+          <li><span class="report-text" contenteditable="false"><strong>团队凝聚力：</strong>来源广泛，向心力需关注</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
+          <li><span class="report-text" contenteditable="false"><strong>测试能力：</strong>测试团队能力建设待提升</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
+          <li><span class="report-text" contenteditable="false"><strong>产品研发：</strong>后装一代产品研发节奏风险待关注</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
+        </ol>
+        <button class="add-btn" onclick="addReportItem(this)">+ 添加要点</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timeline -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">本月关键事项时间线</div>
+      <button class="add-btn" style="width:auto;margin:0;display:none;" id="addTimelineBtn" onclick="addTimelineItem()">+ 添加事项</button>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;">
+      <div class="timeline" id="timeline">
+        <div class="timeline-item"><div class="tl-status" contenteditable="false">进行中</div><div class="tl-dot" style="background:var(--orange);" onclick="cycleColor(this)"></div><div class="tl-content" contenteditable="false"><strong>TTE问卷</strong> — 已发放，正在回收，预计下周开始数据分析</div><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
+        <div class="timeline-item"><div class="tl-status" contenteditable="false">进行中</div><div class="tl-dot" style="background:var(--orange);" onclick="cycleColor(this)"></div><div class="tl-content" contenteditable="false"><strong>AI模型部量产vs预研分工</strong> — 涉及40+人职责调整</div><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
+        <div class="timeline-item"><div class="tl-status" contenteditable="false">已完成</div><div class="tl-dot" style="background:var(--green);" onclick="cycleColor(this)"></div><div class="tl-content" contenteditable="false"><strong>机电组织架构调整</strong> — 三级leader调整，需继续观察运转</div><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
+        <div class="timeline-item"><div class="tl-status" contenteditable="false">即将开始</div><div class="tl-dot" style="background:var(--blue);" onclick="cycleColor(this)"></div><div class="tl-content" contenteditable="false"><strong>调薪沟通</strong> — 配合SED组织诊断访谈同步开展</div><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
+        <div class="timeline-item"><div class="tl-status" contenteditable="false">持续</div><div class="tl-dot" style="background:var(--accent);" onclick="cycleColor(this)"></div><div class="tl-content" contenteditable="false"><strong>5位新任干部并行培养</strong> — 陈炯/薛冰/Jason/文恒/徐琳</div><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>研发HRBP月报可视化看板 · hilary's AI agent · 数据来源：研发HRBP重点工作月报 2026/3</footer>
+</div>
+
+<div class="toast" id="toast">已保存</div>
+
+<script>
+Chart.defaults.color='#8b8fa3';Chart.defaults.borderColor='#2a2e3a';Chart.defaults.font.family="-apple-system,'PingFang SC',sans-serif";
+new Chart(document.getElementById('headcountChart'),{type:'bar',data:{labels:['SED','AI模型','AI软件','行为智能','嵌入式','时空数据','机电','测试','智研软件','功能安全','系统架构','控制器','行车','泊车'],datasets:[{label:'人数',data:[125,103,85,73,105,63,63,56,45,31,28,14,11,11],backgroundColor:'rgba(108,92,231,0.6)',borderColor:'rgba(108,92,231,1)',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#1e2230'}},x:{grid:{display:false},ticks:{font:{size:10},maxRotation:45}}}}});
+new Chart(document.getElementById('turnoverChart'),{type:'doughnut',data:{labels:['AI模型部','嵌入式底软','ITED','其他自驾','无人机'],datasets:[{data:[15,7,11,21,1],backgroundColor:['#ff6b6b','#ffa94d','#ffd43b','#339af0','#868e96'],borderWidth:0,hoverOffset:8}]},options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'right',labels:{padding:16,usePointStyle:true,font:{size:12}}}}}});
+new Chart(document.getElementById('deptChart'),{type:'bar',data:{labels:['自动驾驶研发部','数字化效能部','车载无人机研发部'],datasets:[{label:'总部正式',data:[813,215,27],backgroundColor:'rgba(51,154,240,0.6)',borderRadius:4},{label:'工程/实习',data:[0,8,22],backgroundColor:'rgba(81,207,102,0.5)',borderRadius:4},{label:'本月离职',data:[43,11,1],backgroundColor:'rgba(255,107,107,0.6)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,grid:{color:'#1e2230'}},x:{grid:{display:false}}},plugins:{legend:{labels:{usePointStyle:true,padding:16}}}}});
+new Chart(document.getElementById('leaderChart'),{type:'bar',data:{labels:['陈炯\n嵌入式','薛冰\n系统架构','Jason\n机电','文恒\n数据工程','徐琳\n流程IT'],datasets:[{label:'培养进度%',data:[70,50,40,25,15],backgroundColor:['rgba(81,207,102,0.6)','rgba(51,154,240,0.6)','rgba(255,169,77,0.6)','rgba(255,107,107,0.6)','rgba(134,142,150,0.6)'],borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,scales:{x:{beginAtZero:true,max:100,grid:{color:'#1e2230'},ticks:{callback:v=>v+'%'}},y:{grid:{display:false}}},plugins:{legend:{display:false}}}});
+
+let editMode = false;
+
+function toggleEditMode() {
+  editMode = !editMode;
+  document.body.classList.toggle('edit-mode', editMode);
+  document.getElementById('editToggle').innerHTML = editMode ? '🔒 锁定' : '✏️ 开启编辑';
+  document.getElementById('editToggle').classList.toggle('btn-accent', !editMode);
+  document.getElementById('editToggle').classList.toggle('btn-green', editMode);
+  document.getElementById('editIndicator').classList.toggle('show', editMode);
+  document.getElementById('addLeaderBtn').style.display = editMode ? 'block' : 'none';
+  document.getElementById('addTimelineBtn').style.display = editMode ? 'block' : 'none';
+  document.querySelectorAll('[contenteditable]').forEach(el => el.contentEditable = editMode);
+  document.querySelectorAll('.status-select').forEach(el => el.disabled = !editMode);
+  document.querySelectorAll('.progress-input').forEach(el => el.disabled = !editMode);
+  document.querySelectorAll('.period-badge').forEach(el => el.contentEditable = editMode);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg || '已保存';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function saveData() {
+  const content = document.querySelector('.container').innerHTML;
+  localStorage.setItem('hrbp_dashboard_v1', content);
+  showToast('已保存到浏览器');
+}
+
+function loadData() {
+  const saved = localStorage.getItem('hrbp_dashboard_v1');
+  if (saved) { document.querySelector('.container').innerHTML = saved; showToast('已加载保存的数据'); }
+}
+
+function resetData() {
+  if (confirm('确定要重置所有修改吗？此操作不可撤销。')) {
+    localStorage.removeItem('hrbp_dashboard_v1');
+    location.reload();
+  }
+}
+
+function exportHTML() {
+  const html = document.documentElement.outerHTML;
+  const blob = new Blob([html], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'HRBP月报看板_' + new Date().toISOString().slice(0,10) + '.html';
+  a.click();
+  showToast('已导出HTML文件');
+}
+
+function addAlertItem(btn) {
+  const ul = btn.previousElementSibling;
+  const li = document.createElement('li');
+  li.innerHTML = '<span class="alert-text" contenteditable="true"><strong>新增项</strong> — 点击编辑内容</span><button class="delete-btn" style="display:flex;align-items:center;justify-content:center;" onclick="this.parentElement.remove()">×</button>';
+  ul.appendChild(li);
+  li.querySelector('.alert-text').focus();
+}
+
+function addTaskItem(btn) {
+  const list = btn.previousElementSibling;
+  const div = document.createElement('div');
+  div.className = 'task-item';
+  div.innerHTML = '<span class="icon task-pending" onclick="toggleTask(this)">◷</span><span class="task-text" contenteditable="true">点击编辑任务内容</span><button class="delete-btn" style="display:flex;align-items:center;justify-content:center;" onclick="this.parentElement.remove()">×</button>';
+  list.appendChild(div);
+  div.querySelector('.task-text').focus();
+}
+
+function addReportItem(btn) {
+  const ol = btn.previousElementSibling;
+  const li = document.createElement('li');
+  li.innerHTML = '<span class="report-text" contenteditable="true"><strong>新要点：</strong>点击编辑内容</span><button class="delete-btn" style="display:flex;align-items:center;justify-content:center;" onclick="this.parentElement.remove()">×</button>';
+  ol.appendChild(li);
+  li.querySelector('.report-text').focus();
+}
+
+function addLeaderRow() {
+  const tbody = document.querySelector('#leaderTable tbody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = '<td contenteditable="true"><strong>新姓名</strong></td><td contenteditable="true">部门</td><td><select class="status-select" onchange="updateDot(this)"><option value="green">见习中</option><option value="orange" selected>待答辩</option><option value="red">暂缓</option></select></td><td contenteditable="true">评价要点</td><td><span class="tag tag-orange" contenteditable="true">风险</span></td><td><button class="delete-btn" style="display:flex;align-items:center;justify-content:center;" onclick="this.closest(\'tr\').remove()">×</button></td>';
+  tbody.appendChild(tr);
+}
+
+function addTimelineItem() {
+  const tl = document.getElementById('timeline');
+  const div = document.createElement('div');
+  div.className = 'timeline-item';
+  div.innerHTML = '<div class="tl-status" contenteditable="true">进行中</div><div class="tl-dot" style="background:var(--orange);" onclick="cycleColor(this)"></div><div class="tl-content" contenteditable="true"><strong>新事项</strong> — 点击编辑</div><button class="delete-btn" style="display:flex;align-items:center;justify-content:center;" onclick="this.parentElement.remove()">×</button>';
+  tl.appendChild(div);
+}
+
+function toggleTask(icon) {
+  if (!editMode) return;
+  const isDone = icon.classList.contains('task-done');
+  icon.className = 'icon ' + (isDone ? 'task-pending' : 'task-done');
+  icon.textContent = isDone ? '◷' : '✓';
+}
+
+function updateProgress(input) {
+  const fill = input.nextElementSibling.querySelector('.fill');
+  fill.style.width = input.value + '%';
+}
+
+function cycleColor(dot) {
+  if (!editMode) return;
+  const colors = ['var(--green)','var(--orange)','var(--blue)','var(--accent)','var(--red)'];
+  const current = dot.style.background;
+  let idx = colors.findIndex(c => current.includes(c.replace('var(--','').replace(')','')));
+  dot.style.background = colors[(idx + 1) % colors.length];
+}
+
+function updateDot(select) {
+  // status select visual update if needed
+}
+
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); saveData(); }
+});
+</script>
+</body>
+</html>
