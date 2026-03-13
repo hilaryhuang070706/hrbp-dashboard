@@ -129,6 +129,20 @@
   .timeline-item .tl-dot { width:12px; height:12px; border-radius:50%; margin-top:4px; flex-shrink:0; cursor:pointer; }
   .timeline-item .tl-content { flex:1; }
 
+  /* Module-level controls */
+  .module-card { position:relative; }
+  .module-del { display:none; position:absolute; top:8px; right:8px; width:24px; height:24px; border-radius:6px; border:none; background:var(--red-bg); color:var(--red); cursor:pointer; font-size:16px; z-index:10; align-items:center; justify-content:center; opacity:0.7; transition:opacity 0.2s; }
+  .module-del:hover { opacity:1; }
+  body.edit-mode .module-del { display:flex; }
+  .grid-add { display:none; min-height:100px; border:2px dashed var(--border); border-radius:16px; cursor:pointer; font-size:14px; color:var(--text-secondary); transition:all 0.2s; align-items:center; justify-content:center; gap:8px; background:transparent; width:100%; }
+  .grid-add:hover { border-color:var(--accent); color:var(--accent); background:rgba(108,92,231,0.05); }
+  body.edit-mode .grid-add { display:flex; }
+  .section-del { display:none; width:28px; height:28px; border-radius:6px; border:none; background:var(--red-bg); color:var(--red); cursor:pointer; font-size:16px; align-items:center; justify-content:center; }
+  body.edit-mode .section-del { display:flex; }
+  .add-section-btn { display:none; width:100%; padding:16px; border:2px dashed var(--border); border-radius:16px; background:transparent; color:var(--text-secondary); cursor:pointer; font-size:15px; font-weight:500; transition:all 0.2s; margin-bottom:32px; }
+  .add-section-btn:hover { border-color:var(--accent); color:var(--accent); }
+  body.edit-mode .add-section-btn { display:block; }
+
   /* Toast */
   .toast { position:fixed; bottom:24px; right:24px; background:var(--green); color:#000; padding:12px 20px; border-radius:10px; font-size:14px; font-weight:500; opacity:0; transform:translateY(20px); transition:all 0.3s; z-index:200; pointer-events:none; }
   .toast.show { opacity:1; transform:translateY(0); }
@@ -160,46 +174,61 @@
   </div>
 
   <!-- Key Stats -->
+  <div class="section" id="sectionStats">
+  <div class="section-header">
+    <div class="section-title">关键数据</div>
+    <button class="section-del" onclick="deleteSection(this)">×</button>
+  </div>
   <div class="stats-grid" id="statsGrid">
-    <div class="stat-card danger">
+    <div class="stat-card danger module-card">
+      <button class="module-del" onclick="this.parentElement.remove()">×</button>
       <div class="label" contenteditable="false">本月离职/待离职</div>
       <div class="value" contenteditable="false">55</div>
       <div class="sub" contenteditable="false">自驾43 · ITED 11 · 无人机1</div>
     </div>
-    <div class="stat-card warning">
+    <div class="stat-card warning module-card">
+      <button class="module-del" onclick="this.parentElement.remove()">×</button>
       <div class="label" contenteditable="false">关键风险人员</div>
       <div class="value" contenteditable="false">9</div>
       <div class="sub" contenteditable="false">含上海算法5人 · 唐承川 · 石磊等</div>
     </div>
-    <div class="stat-card info">
+    <div class="stat-card info module-card">
+      <button class="module-del" onclick="this.parentElement.remove()">×</button>
       <div class="label" contenteditable="false">研发总人数</div>
       <div class="value" contenteditable="false">1,100+</div>
       <div class="sub" contenteditable="false">三大一级部门合计</div>
     </div>
-    <div class="stat-card warning">
+    <div class="stat-card warning module-card">
+      <button class="module-del" onclick="this.parentElement.remove()">×</button>
       <div class="label" contenteditable="false">新任干部培养中</div>
       <div class="value" contenteditable="false">5</div>
       <div class="sub" contenteditable="false">陈炯 · 薛冰 · Jason · 文恒 · 徐琳</div>
     </div>
-    <div class="stat-card info">
+    <div class="stat-card info module-card">
+      <button class="module-del" onclick="this.parentElement.remove()">×</button>
       <div class="label" contenteditable="false">待招HC</div>
       <div class="value" contenteditable="false">40+</div>
       <div class="sub" contenteditable="false">数字化效能部为主</div>
     </div>
-    <div class="stat-card success">
+    <div class="stat-card success module-card">
+      <button class="module-del" onclick="this.parentElement.remove()">×</button>
       <div class="label" contenteditable="false">BP团队</div>
       <div class="value" contenteditable="false">4</div>
       <div class="sub" contenteditable="false">vinnie · tt · yvette · 冷静</div>
     </div>
+    <button class="grid-add" onclick="addStatCard(this)">+ 添加统计卡片</button>
+  </div>
   </div>
 
   <!-- Alerts -->
-  <div class="section">
+  <div class="section" id="sectionAlerts">
     <div class="section-header">
       <div class="section-title">红灯预警</div>
+      <button class="section-del" onclick="deleteSection(this)">×</button>
     </div>
     <div class="alerts-grid">
-      <div class="alert-card" id="alertTurnover">
+      <div class="alert-card module-card" id="alertTurnover">
+        <button class="module-del" onclick="this.parentElement.remove()">×</button>
         <h3 contenteditable="false">🔴 离职潮</h3>
         <ul class="alert-list">
           <li><span class="alert-text" contenteditable="false"><strong>AI模型部</strong> 离职15人，算法人才保留是核心</span><span class="tag tag-red" contenteditable="false">最严重</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
@@ -209,7 +238,8 @@
         </ul>
         <button class="add-btn" onclick="addAlertItem(this)">+ 添加预警项</button>
       </div>
-      <div class="alert-card orange" id="alertRisk">
+      <div class="alert-card orange module-card" id="alertRisk">
+        <button class="module-del" onclick="this.parentElement.remove()">×</button>
         <h3 contenteditable="false">🟡 关键人员风险</h3>
         <ul class="alert-list">
           <li><span class="alert-text" contenteditable="false"><strong>唐承川、石磊</strong> — 数字化效能部标记风险</span><span class="tag tag-orange" contenteditable="false">关注</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
@@ -219,7 +249,8 @@
         </ul>
         <button class="add-btn" onclick="addAlertItem(this)">+ 添加预警项</button>
       </div>
-      <div class="alert-card blue" id="alertConflict">
+      <div class="alert-card blue module-card" id="alertConflict">
+        <button class="module-del" onclick="this.parentElement.remove()">×</button>
         <h3 contenteditable="false">🔵 协作冲突</h3>
         <ul class="alert-list">
           <li><span class="alert-text" contenteditable="false"><strong>自驾 vs ST</strong> — 经营单元人员带宽和考核归属有摩擦</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
@@ -229,25 +260,32 @@
         </ul>
         <button class="add-btn" onclick="addAlertItem(this)">+ 添加预警项</button>
       </div>
+      <button class="grid-add" onclick="addAlertCard(this)">+ 添加预警类别</button>
     </div>
   </div>
 
   <!-- Charts -->
-  <div class="section">
-    <div class="section-title">数据概览</div>
+  <div class="section" id="sectionCharts">
+    <div class="section-header">
+      <div class="section-title">数据概览</div>
+      <button class="section-del" onclick="deleteSection(this)">×</button>
+    </div>
     <div class="charts-grid">
-      <div class="chart-card"><h3>各二级部门人数分布（自驾研发部）</h3><div class="chart-container"><canvas id="headcountChart"></canvas></div></div>
-      <div class="chart-card"><h3>离职人数分布</h3><div class="chart-container"><canvas id="turnoverChart"></canvas></div></div>
-      <div class="chart-card"><h3>三大一级部门人数对比</h3><div class="chart-container"><canvas id="deptChart"></canvas></div></div>
-      <div class="chart-card"><h3>新任干部培养进度</h3><div class="chart-container"><canvas id="leaderChart"></canvas></div></div>
+      <div class="chart-card module-card"><button class="module-del" onclick="this.parentElement.remove()">×</button><h3>各二级部门人数分布（自驾研发部）</h3><div class="chart-container"><canvas id="headcountChart"></canvas></div></div>
+      <div class="chart-card module-card"><button class="module-del" onclick="this.parentElement.remove()">×</button><h3>离职人数分布</h3><div class="chart-container"><canvas id="turnoverChart"></canvas></div></div>
+      <div class="chart-card module-card"><button class="module-del" onclick="this.parentElement.remove()">×</button><h3>三大一级部门人数对比</h3><div class="chart-container"><canvas id="deptChart"></canvas></div></div>
+      <div class="chart-card module-card"><button class="module-del" onclick="this.parentElement.remove()">×</button><h3>新任干部培养进度</h3><div class="chart-container"><canvas id="leaderChart"></canvas></div></div>
     </div>
   </div>
 
   <!-- Leader Tracking -->
-  <div class="section">
+  <div class="section" id="sectionLeader">
     <div class="section-header">
       <div class="section-title">新任干部上岗追踪</div>
-      <button class="add-btn" style="width:auto;margin:0;display:none;" id="addLeaderBtn" onclick="addLeaderRow()">+ 添加干部</button>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="add-btn" style="width:auto;margin:0;display:none;" id="addLeaderBtn" onclick="addLeaderRow()">+ 添加干部</button>
+        <button class="section-del" onclick="deleteSection(this)">×</button>
+      </div>
     </div>
     <div class="table-wrap">
       <table class="leader-table" id="leaderTable">
@@ -264,10 +302,14 @@
   </div>
 
   <!-- BP Progress -->
-  <div class="section">
-    <div class="section-title">下属BP工作进展</div>
+  <div class="section" id="sectionBP">
+    <div class="section-header">
+      <div class="section-title">下属BP工作进展</div>
+      <button class="section-del" onclick="deleteSection(this)">×</button>
+    </div>
     <div class="bp-grid">
-      <div class="bp-card">
+      <div class="bp-card module-card">
+        <button class="module-del" onclick="this.parentElement.remove()">×</button>
         <h3 contenteditable="false">vinnie.zeng</h3>
         <div class="scope" contenteditable="false">智研软件 · AI软件 · 嵌入式 · 控制器产品 · 机电 · 无人机（6个部门）</div>
         <input type="range" class="progress-input" min="0" max="100" value="75" oninput="updateProgress(this)" disabled>
@@ -282,7 +324,8 @@
         </div>
         <button class="add-btn" onclick="addTaskItem(this)">+ 添加任务</button>
       </div>
-      <div class="bp-card">
+      <div class="bp-card module-card">
+        <button class="module-del" onclick="this.parentElement.remove()">×</button>
         <h3 contenteditable="false">tt.guo</h3>
         <div class="scope" contenteditable="false">AI模型 · 行为智能 · 时空数据 · 行车产品 · 泊车产品（5个部门）</div>
         <input type="range" class="progress-input" min="0" max="100" value="60" oninput="updateProgress(this)" disabled>
@@ -297,7 +340,8 @@
         </div>
         <button class="add-btn" onclick="addTaskItem(this)">+ 添加任务</button>
       </div>
-      <div class="bp-card">
+      <div class="bp-card module-card">
+        <button class="module-del" onclick="this.parentElement.remove()">×</button>
         <h3 contenteditable="false">yvette.he</h3>
         <div class="scope" contenteditable="false">系统工程交付 · 系统架构 · 测试 · 功能安全（4个部门）</div>
         <input type="range" class="progress-input" min="0" max="100" value="65" oninput="updateProgress(this)" disabled>
@@ -312,7 +356,8 @@
         </div>
         <button class="add-btn" onclick="addTaskItem(this)">+ 添加任务</button>
       </div>
-      <div class="bp-card">
+      <div class="bp-card module-card">
+        <button class="module-del" onclick="this.parentElement.remove()">×</button>
         <h3 contenteditable="false">冷静</h3>
         <div class="scope" contenteditable="false">数字化效能部整体（数据工程 · 基础架构 · 流程IT · 信息安全）</div>
         <input type="range" class="progress-input" min="0" max="100" value="45" oninput="updateProgress(this)" disabled>
@@ -326,14 +371,19 @@
         </div>
         <button class="add-btn" onclick="addTaskItem(this)">+ 添加任务</button>
       </div>
+      <button class="grid-add" onclick="addBPCard(this)">+ 添加BP</button>
     </div>
   </div>
 
   <!-- Report to Leaders -->
-  <div class="section">
-    <div class="section-title">向一号位汇报建议</div>
+  <div class="section" id="sectionReport">
+    <div class="section-header">
+      <div class="section-title">向一号位汇报建议</div>
+      <button class="section-del" onclick="deleteSection(this)">×</button>
+    </div>
     <div class="report-grid">
-      <div class="report-card">
+      <div class="report-card module-card">
+        <button class="module-del" onclick="this.parentElement.remove()">×</button>
         <h3 contenteditable="false">📋 向马陆汇报</h3>
         <ol class="report-list">
           <li><span class="report-text" contenteditable="false"><strong>离职形势：</strong>自驾部已提单+待提单43人，AI模型部15人最多，算法人才保留是重点</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
@@ -342,7 +392,8 @@
         </ol>
         <button class="add-btn" onclick="addReportItem(this)">+ 添加要点</button>
       </div>
-      <div class="report-card">
+      <div class="report-card module-card">
+        <button class="module-del" onclick="this.parentElement.remove()">×</button>
         <h3 contenteditable="false">📋 向王斌汇报</h3>
         <ol class="report-list">
           <li><span class="report-text" contenteditable="false"><strong>ITED离职：</strong>11人 + 骨干被sven挖，需重点关注团队稳定性</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
@@ -352,7 +403,8 @@
         </ol>
         <button class="add-btn" onclick="addReportItem(this)">+ 添加要点</button>
       </div>
-      <div class="report-card">
+      <div class="report-card module-card">
+        <button class="module-del" onclick="this.parentElement.remove()">×</button>
         <h3 contenteditable="false">📋 向黄永结汇报</h3>
         <ol class="report-list">
           <li><span class="report-text" contenteditable="false"><strong>团队凝聚力：</strong>来源广泛，向心力需关注</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
@@ -361,14 +413,18 @@
         </ol>
         <button class="add-btn" onclick="addReportItem(this)">+ 添加要点</button>
       </div>
+      <button class="grid-add" onclick="addReportCard(this)">+ 添加汇报对象</button>
     </div>
   </div>
 
   <!-- Timeline -->
-  <div class="section">
+  <div class="section" id="sectionTimeline">
     <div class="section-header">
       <div class="section-title">本月关键事项时间线</div>
-      <button class="add-btn" style="width:auto;margin:0;display:none;" id="addTimelineBtn" onclick="addTimelineItem()">+ 添加事项</button>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="add-btn" style="width:auto;margin:0;display:none;" id="addTimelineBtn" onclick="addTimelineItem()">+ 添加事项</button>
+        <button class="section-del" onclick="deleteSection(this)">×</button>
+      </div>
     </div>
     <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;">
       <div class="timeline" id="timeline">
@@ -381,6 +437,7 @@
     </div>
   </div>
 
+  <button class="add-section-btn" onclick="addSection(this)">+ 添加新板块</button>
   <footer>研发HRBP月报可视化看板 · hilary's AI agent · 数据来源：研发HRBP重点工作月报 2026/3</footer>
 </div>
 
@@ -505,8 +562,72 @@ function cycleColor(dot) {
   dot.style.background = colors[(idx + 1) % colors.length];
 }
 
-function updateDot(select) {
-  // status select visual update if needed
+function updateDot(select) {}
+
+function addStatCard(btn) {
+  const card = document.createElement('div');
+  card.className = 'stat-card info module-card';
+  card.innerHTML = '<button class="module-del" onclick="this.parentElement.remove()">×</button><div class="label" contenteditable="true">指标名称</div><div class="value" contenteditable="true">0</div><div class="sub" contenteditable="true">点击编辑说明</div>';
+  btn.parentElement.insertBefore(card, btn);
+  card.querySelector('.label').focus();
+}
+
+function addAlertCard(btn) {
+  const colors = ['','orange','blue'];
+  const icons = ['🔴','🟡','🔵'];
+  const card = document.createElement('div');
+  card.className = 'alert-card module-card';
+  card.innerHTML = '<button class="module-del" onclick="this.parentElement.remove()">×</button><h3 contenteditable="true">🔴 新预警类别</h3><ul class="alert-list"><li><span class="alert-text" contenteditable="true"><strong>待编辑</strong> — 点击编辑内容</span><button class="delete-btn" style="display:flex;align-items:center;justify-content:center;" onclick="this.parentElement.remove()">×</button></li></ul><button class="add-btn" style="display:block;" onclick="addAlertItem(this)">+ 添加预警项</button>';
+  btn.parentElement.insertBefore(card, btn);
+  card.querySelector('h3').focus();
+}
+
+function addBPCard(btn) {
+  const card = document.createElement('div');
+  card.className = 'bp-card module-card';
+  card.innerHTML = '<button class="module-del" onclick="this.parentElement.remove()">×</button><h3 contenteditable="true">新BP姓名</h3><div class="scope" contenteditable="true">负责部门</div><input type="range" class="progress-input" min="0" max="100" value="0" oninput="updateProgress(this)" style="display:inline-block;"><div class="progress-bar"><div class="fill" style="width:0%;background:linear-gradient(90deg,var(--accent),var(--blue))"></div></div><div class="task-list"></div><button class="add-btn" style="display:block;" onclick="addTaskItem(this)">+ 添加任务</button>';
+  btn.parentElement.insertBefore(card, btn);
+  card.querySelector('h3').focus();
+}
+
+function addReportCard(btn) {
+  const card = document.createElement('div');
+  card.className = 'report-card module-card';
+  card.innerHTML = '<button class="module-del" onclick="this.parentElement.remove()">×</button><h3 contenteditable="true">📋 向XXX汇报</h3><ol class="report-list"><li><span class="report-text" contenteditable="true"><strong>要点：</strong>点击编辑</span><button class="delete-btn" style="display:flex;align-items:center;justify-content:center;" onclick="this.parentElement.remove()">×</button></li></ol><button class="add-btn" style="display:block;" onclick="addReportItem(this)">+ 添加要点</button>';
+  btn.parentElement.insertBefore(card, btn);
+  card.querySelector('h3').focus();
+}
+
+function addSection(btn) {
+  const type = prompt('选择板块类型：\n1 - 预警/信息卡片\n2 - 表格\n3 - 自由文本\n\n输入数字：');
+  if (!type) return;
+  const section = document.createElement('div');
+  section.className = 'section';
+  let inner = '<div class="section-header"><div class="section-title" contenteditable="true">新板块标题</div><button class="section-del" onclick="deleteSection(this)">×</button></div>';
+  if (type === '2') {
+    inner += '<div class="table-wrap"><table class="leader-table"><thead><tr><th>列1</th><th>列2</th><th>列3</th><th>操作</th></tr></thead><tbody><tr><td contenteditable="true">数据</td><td contenteditable="true">数据</td><td contenteditable="true">数据</td><td><button class="delete-btn" style="display:flex;align-items:center;justify-content:center;" onclick="this.closest(\'tr\').remove()">×</button></td></tr></tbody></table></div><button class="add-btn" style="display:block;" onclick="addTableRow(this)">+ 添加行</button>';
+  } else if (type === '3') {
+    inner += '<div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;"><div contenteditable="true" style="min-height:60px;color:var(--text-secondary);">点击编辑自由文本内容...</div></div>';
+  } else {
+    inner += '<div class="alerts-grid"><div class="alert-card module-card"><button class="module-del" onclick="this.parentElement.remove()">×</button><h3 contenteditable="true">标题</h3><ul class="alert-list"><li><span class="alert-text" contenteditable="true"><strong>条目</strong> — 点击编辑</span><button class="delete-btn" style="display:flex;align-items:center;justify-content:center;" onclick="this.parentElement.remove()">×</button></li></ul><button class="add-btn" style="display:block;" onclick="addAlertItem(this)">+ 添加项</button></div><button class="grid-add" style="display:flex;" onclick="addAlertCard(this)">+ 添加卡片</button></div>';
+  }
+  section.innerHTML = inner;
+  btn.parentElement.insertBefore(section, btn);
+}
+
+function deleteSection(btn) {
+  if (confirm('确定删除整个板块？')) btn.closest('.section').remove();
+}
+
+function addTableRow(btn) {
+  const tbody = btn.previousElementSibling.querySelector('tbody');
+  const cols = tbody.closest('table').querySelectorAll('th').length - 1;
+  const tr = document.createElement('tr');
+  let html = '';
+  for (let i = 0; i < cols; i++) html += '<td contenteditable="true">数据</td>';
+  html += '<td><button class="delete-btn" style="display:flex;align-items:center;justify-content:center;" onclick="this.closest(\'tr\').remove()">×</button></td>';
+  tr.innerHTML = html;
+  tbody.appendChild(tr);
 }
 
 document.addEventListener('keydown', e => {
