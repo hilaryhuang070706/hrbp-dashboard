@@ -3,636 +3,682 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>研发HRBP月报看板 | 2026年3月</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<title>研发HRBP月报看板</title>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
 <style>
-  :root {
-    --bg: #0f1117; --card: #1a1d27; --card-hover: #222632; --border: #2a2e3a;
-    --text: #e4e6eb; --text-secondary: #8b8fa3;
-    --accent: #6c5ce7; --accent-light: #a29bfe;
-    --red: #ff6b6b; --red-bg: rgba(255,107,107,0.12);
-    --orange: #ffa94d; --orange-bg: rgba(255,169,77,0.12);
-    --green: #51cf66; --green-bg: rgba(81,207,102,0.12);
-    --blue: #339af0; --blue-bg: rgba(51,154,240,0.12);
-  }
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family: -apple-system,'PingFang SC','Microsoft YaHei',sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
-  .container { max-width:1400px; margin:0 auto; padding:24px; }
+:root {
+  --bg:#0f1117; --card:#1a1d27; --card-hover:#222632; --border:#2a2e3a;
+  --text:#e4e6eb; --text2:#8b8fa3;
+  --accent:#6c5ce7; --accent-l:#a29bfe;
+  --red:#ff6b6b; --red-bg:rgba(255,107,107,.12);
+  --orange:#ffa94d; --orange-bg:rgba(255,169,77,.12);
+  --green:#51cf66; --green-bg:rgba(81,207,102,.12);
+  --blue:#339af0; --blue-bg:rgba(51,154,240,.12);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;}
 
-  /* Toolbar */
-  .toolbar { position:sticky; top:0; z-index:100; background:rgba(15,17,23,0.95); backdrop-filter:blur(12px); border-bottom:1px solid var(--border); padding:12px 24px; margin:-24px -24px 24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
-  .toolbar h1 { font-size:22px; font-weight:700; background:linear-gradient(135deg,var(--accent-light),var(--blue)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-  .toolbar-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-  .btn { padding:8px 16px; border-radius:8px; font-size:13px; cursor:pointer; border:1px solid var(--border); background:var(--card); color:var(--text); transition:all 0.2s; display:flex; align-items:center; gap:6px; }
-  .btn:hover { background:var(--card-hover); }
-  .btn-accent { background:var(--accent); border-color:var(--accent); color:#fff; }
-  .btn-accent:hover { background:#5b4bd5; }
-  .btn-green { background:var(--green); border-color:var(--green); color:#000; }
-  .btn-red { background:var(--red); border-color:var(--red); color:#fff; }
-  .edit-indicator { font-size:12px; color:var(--green); display:none; }
-  .edit-indicator.show { display:inline; }
-  .period-badge { background:var(--card); border:1px solid var(--border); padding:6px 16px; border-radius:16px; font-size:13px; color:var(--text-secondary); }
+/* Toolbar */
+.toolbar{position:sticky;top:0;z-index:100;background:rgba(15,17,23,.96);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+.toolbar h1{font-size:20px;font-weight:700;background:linear-gradient(135deg,var(--accent-l),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.toolbar-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.btn{padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--text);transition:all .2s;display:flex;align-items:center;gap:5px;white-space:nowrap;}
+.btn:hover{background:var(--card-hover);}
+.btn-accent{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn-accent:hover{background:#5b4bd5;}
+.btn-green{background:var(--green);border-color:var(--green);color:#000;}
+.period-badge{background:var(--card);border:1px solid var(--border);padding:5px 14px;border-radius:14px;font-size:12px;color:var(--text2);}
+.edit-on{font-size:11px;color:var(--green);display:none;}
+.edit-on.show{display:inline;}
 
-  /* Editable */
-  [contenteditable=true] { outline:none; border-radius:4px; transition:box-shadow 0.2s; }
-  body.edit-mode [contenteditable=true]:hover { box-shadow:0 0 0 2px rgba(108,92,231,0.3); }
-  body.edit-mode [contenteditable=true]:focus { box-shadow:0 0 0 2px var(--accent); background:rgba(108,92,231,0.08); }
+/* Main Layout */
+.main{display:flex;max-width:1600px;margin:0 auto;}
+.content{flex:1;padding:20px;min-width:0;}
 
-  /* Stats Cards */
-  .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:32px; }
-  .stat-card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:24px; transition:all 0.2s; position:relative; }
-  .stat-card:hover { background:var(--card-hover); transform:translateY(-2px); }
-  .stat-card .label { font-size:13px; color:var(--text-secondary); margin-bottom:8px; }
-  .stat-card .value { font-size:36px; font-weight:700; }
-  .stat-card .sub { font-size:12px; color:var(--text-secondary); margin-top:4px; }
-  .stat-card.danger .value { color:var(--red); }
-  .stat-card.warning .value { color:var(--orange); }
-  .stat-card.info .value { color:var(--blue); }
-  .stat-card.success .value { color:var(--green); }
+/* Sidebar - Template Library */
+.sidebar{width:0;overflow:hidden;transition:width .3s;background:var(--card);border-left:1px solid var(--border);flex-shrink:0;}
+.sidebar.open{width:260px;}
+.sidebar-inner{width:260px;padding:16px;height:calc(100vh - 52px);overflow-y:auto;position:sticky;top:52px;}
+.sidebar h2{font-size:14px;font-weight:600;margin-bottom:12px;color:var(--text2);letter-spacing:1px;}
+.tpl-item{padding:12px;border:1px dashed var(--border);border-radius:10px;margin-bottom:8px;cursor:grab;font-size:13px;color:var(--text);transition:all .2s;display:flex;align-items:center;gap:8px;user-select:none;}
+.tpl-item:hover{border-color:var(--accent);background:rgba(108,92,231,.06);}
+.tpl-item:active{cursor:grabbing;}
+.tpl-icon{font-size:18px;flex-shrink:0;}
+.tpl-label .sub{font-size:11px;color:var(--text2);margin-top:2px;}
 
-  /* Section */
-  .section { margin-bottom:32px; }
-  .section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
-  .section-title { font-size:18px; font-weight:600; display:flex; align-items:center; gap:8px; }
-  .section-title::before { content:''; width:4px; height:20px; background:var(--accent); border-radius:2px; }
+/* Sections */
+.section{margin-bottom:24px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;transition:box-shadow .2s;}
+.section.sortable-ghost{opacity:.4;box-shadow:0 0 0 2px var(--accent);}
+.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:8px;}
+.section-title{font-size:17px;font-weight:600;outline:none;border-radius:4px;padding:2px 6px;margin:-2px -6px;min-width:40px;}
+.section-title:focus{box-shadow:0 0 0 2px var(--accent);background:rgba(108,92,231,.08);}
+.section-title::before{content:'⠿';margin-right:8px;color:var(--text2);font-size:14px;cursor:grab;}
+.section-actions{display:flex;gap:6px;align-items:center;}
+.icon-btn{width:28px;height:28px;border-radius:6px;border:none;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.icon-btn.del{background:var(--red-bg);color:var(--red);}
+.icon-btn.del:hover{background:var(--red);color:#fff;}
+.icon-btn.add{background:rgba(108,92,231,.15);color:var(--accent-l);}
+.icon-btn.add:hover{background:var(--accent);color:#fff;}
 
-  /* Alert Cards */
-  .alerts-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(380px,1fr)); gap:16px; }
-  .alert-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; border-left:4px solid var(--red); }
-  .alert-card.orange { border-left-color:var(--orange); }
-  .alert-card.blue { border-left-color:var(--blue); }
-  .alert-card h3 { font-size:15px; font-weight:600; margin-bottom:10px; }
-  .alert-list { list-style:none; }
-  .alert-list li { padding:8px 0; font-size:13px; color:var(--text-secondary); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:8px; }
-  .alert-list li:last-child { border-bottom:none; }
-  .alert-list li .alert-text { flex:1; }
-  .alert-list li strong { color:var(--text); }
-  .tag { display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:500; cursor:pointer; }
-  .tag-red { background:var(--red-bg); color:var(--red); }
-  .tag-orange { background:var(--orange-bg); color:var(--orange); }
-  .tag-green { background:var(--green-bg); color:var(--green); }
-  .tag-blue { background:var(--blue-bg); color:var(--blue); }
-  .delete-btn { display:none; width:20px; height:20px; border-radius:4px; border:none; background:var(--red-bg); color:var(--red); cursor:pointer; font-size:14px; flex-shrink:0; }
-  body.edit-mode .delete-btn { display:flex; align-items:center; justify-content:center; }
-  .add-btn { display:none; width:100%; padding:8px; border:1px dashed var(--border); border-radius:8px; background:transparent; color:var(--text-secondary); cursor:pointer; font-size:13px; margin-top:8px; transition:all 0.2s; }
-  .add-btn:hover { border-color:var(--accent); color:var(--accent); }
-  body.edit-mode .add-btn { display:block; }
+/* Cards Grid */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;min-height:40px;}
+.cards.wide{grid-template-columns:repeat(auto-fill,minmax(340px,1fr));}
 
-  /* Charts */
-  .charts-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-  .chart-card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:24px; }
-  .chart-card h3 { font-size:15px; font-weight:600; margin-bottom:16px; color:var(--text-secondary); }
-  .chart-container { position:relative; height:300px; }
+/* Stat Card */
+.s-card{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:16px;position:relative;cursor:grab;transition:all .2s;}
+.s-card:hover{border-color:var(--accent);transform:translateY(-1px);}
+.s-card.sortable-ghost{opacity:.4;}
+.s-card .lbl{font-size:12px;color:var(--text2);margin-bottom:4px;outline:none;}
+.s-card .val{font-size:32px;font-weight:700;outline:none;}
+.s-card .sub{font-size:11px;color:var(--text2);margin-top:3px;outline:none;}
+.s-card .card-del{position:absolute;top:6px;right:6px;width:20px;height:20px;border-radius:4px;border:none;background:var(--red-bg);color:var(--red);cursor:pointer;font-size:12px;display:none;align-items:center;justify-content:center;}
+.s-card:hover .card-del{display:flex;}
+.danger .val{color:var(--red);}
+.warning .val{color:var(--orange);}
+.info .val{color:var(--blue);}
+.success .val{color:var(--green);}
 
-  /* Leader Table */
-  .table-wrap { background:var(--card); border:1px solid var(--border); border-radius:16px; overflow-x:auto; }
-  .leader-table { width:100%; border-collapse:separate; border-spacing:0; min-width:700px; }
-  .leader-table th { text-align:left; padding:12px 16px; font-size:12px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid var(--border); }
-  .leader-table td { padding:14px 16px; font-size:14px; border-bottom:1px solid var(--border); }
-  .leader-table tr:hover td { background:var(--card-hover); }
-  .leader-table .actions-col { width:40px; }
-  .status-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
-  .status-dot.green { background:var(--green); }
-  .status-dot.orange { background:var(--orange); }
-  .status-dot.red { background:var(--red); }
-  .status-select { background:var(--card); color:var(--text); border:1px solid var(--border); border-radius:4px; padding:4px 8px; font-size:12px; }
+/* Info Card */
+.i-card{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:16px;position:relative;cursor:grab;border-left:4px solid var(--accent);}
+.i-card:hover{border-color:var(--accent);}
+.i-card.sortable-ghost{opacity:.4;}
+.i-card.red{border-left-color:var(--red);}
+.i-card.orange{border-left-color:var(--orange);}
+.i-card.blue{border-left-color:var(--blue);}
+.i-card.green{border-left-color:var(--green);}
+.i-card h4{font-size:14px;font-weight:600;margin-bottom:8px;outline:none;}
+.i-card .card-del{position:absolute;top:6px;right:6px;width:20px;height:20px;border-radius:4px;border:none;background:var(--red-bg);color:var(--red);cursor:pointer;font-size:12px;display:none;align-items:center;justify-content:center;}
+.i-card:hover .card-del{display:flex;}
+.i-card ul{list-style:none;}
+.i-card li{padding:5px 0;font-size:12px;color:var(--text2);border-bottom:1px solid rgba(42,46,58,.5);display:flex;align-items:center;gap:6px;}
+.i-card li:last-child{border-bottom:none;}
+.i-card li .li-text{flex:1;outline:none;}
+.i-card li .li-del{width:16px;height:16px;border-radius:3px;border:none;background:var(--red-bg);color:var(--red);cursor:pointer;font-size:10px;display:none;align-items:center;justify-content:center;flex-shrink:0;}
+.i-card li:hover .li-del{display:flex;}
+.li-add{width:100%;padding:5px;border:1px dashed var(--border);border-radius:6px;background:transparent;color:var(--text2);cursor:pointer;font-size:11px;margin-top:6px;}
+.li-add:hover{border-color:var(--accent);color:var(--accent);}
 
-  /* BP Progress */
-  .bp-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:16px; }
-  .bp-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; }
-  .bp-card h3 { font-size:16px; font-weight:600; margin-bottom:4px; }
-  .bp-card .scope { font-size:12px; color:var(--text-secondary); margin-bottom:14px; }
-  .progress-bar { height:6px; background:var(--border); border-radius:3px; margin-bottom:16px; overflow:hidden; position:relative; }
-  .progress-bar .fill { height:100%; border-radius:3px; transition:width 0.5s ease; }
-  .progress-input { display:none; width:50px; background:var(--card); color:var(--text); border:1px solid var(--border); border-radius:4px; padding:2px 6px; font-size:12px; margin-bottom:8px; }
-  body.edit-mode .progress-input { display:inline-block; }
-  .task-list { min-height:20px; }
-  .task-item { display:flex; align-items:flex-start; gap:8px; padding:6px 0; font-size:13px; }
-  .task-item .icon { flex-shrink:0; margin-top:2px; cursor:pointer; }
-  .task-item .task-text { flex:1; }
-  .task-done { color:var(--green); }
-  .task-pending { color:var(--orange); }
+/* Department Card */
+.d-card{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:20px;position:relative;cursor:pointer;transition:all .2s;min-height:120px;}
+.d-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3);}
+.d-card.sortable-ghost{opacity:.4;}
+.d-card .d-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;}
+.d-card .d-name{font-size:16px;font-weight:600;}
+.d-card .d-leader{font-size:12px;color:var(--text2);}
+.d-card .d-stats{display:flex;gap:16px;margin-bottom:10px;}
+.d-card .d-stat{text-align:center;}
+.d-card .d-stat .d-num{font-size:22px;font-weight:700;}
+.d-card .d-stat .d-label{font-size:10px;color:var(--text2);}
+.d-card .d-bp{font-size:11px;color:var(--text2);margin-top:8px;}
+.d-card .d-enter{position:absolute;bottom:12px;right:16px;font-size:11px;color:var(--accent-l);opacity:0;transition:opacity .2s;}
+.d-card:hover .d-enter{opacity:1;}
+.d-card .card-del{position:absolute;top:6px;right:6px;width:20px;height:20px;border-radius:4px;border:none;background:var(--red-bg);color:var(--red);cursor:pointer;font-size:12px;display:none;align-items:center;justify-content:center;z-index:2;}
+.d-card:hover .card-del{display:flex;}
 
-  /* Report Section */
-  .report-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(380px,1fr)); gap:16px; }
-  .report-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; }
-  .report-card h3 { font-size:15px; font-weight:600; margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid var(--border); }
-  .report-list { padding-left:20px; }
-  .report-list li { padding:6px 0; font-size:13px; color:var(--text-secondary); display:flex; align-items:center; gap:8px; }
-  .report-list li .report-text { flex:1; }
-  .report-list li strong { color:var(--text); }
+/* Department Detail (sub-page overlay) */
+.dept-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);display:none;justify-content:center;overflow-y:auto;padding:40px 20px;}
+.dept-overlay.open{display:flex;}
+.dept-detail{background:var(--bg);border:1px solid var(--border);border-radius:20px;width:100%;max-width:1100px;margin:auto;padding:32px;position:relative;animation:slideUp .3s ease;}
+@keyframes slideUp{from{opacity:0;transform:translateY(30px);}to{opacity:1;transform:translateY(0);}}
+.dept-detail .close-btn{position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:8px;border:none;background:var(--card);color:var(--text);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;}
+.dept-detail .close-btn:hover{background:var(--red-bg);color:var(--red);}
+.dept-detail h2{font-size:22px;font-weight:700;margin-bottom:4px;outline:none;}
+.dept-detail .dept-sub{font-size:13px;color:var(--text2);margin-bottom:20px;outline:none;}
+.dept-mini-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:24px;}
+.mini-stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;position:relative;}
+.mini-stat .ms-val{font-size:24px;font-weight:700;}
+.mini-stat .ms-lbl{font-size:11px;color:var(--text2);}
+.mini-stat .card-del{position:absolute;top:4px;right:4px;width:16px;height:16px;border-radius:3px;border:none;background:var(--red-bg);color:var(--red);cursor:pointer;font-size:10px;display:none;align-items:center;justify-content:center;}
+.mini-stat:hover .card-del{display:flex;}
+.dept-section{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;}
+.dept-section h3{font-size:15px;font-weight:600;margin-bottom:10px;outline:none;display:flex;align-items:center;gap:6px;}
+.dept-section h3::before{content:'';width:3px;height:16px;background:var(--accent);border-radius:2px;flex-shrink:0;}
+.dept-item{display:flex;align-items:flex-start;gap:8px;padding:8px 0;font-size:13px;border-bottom:1px solid var(--border);}
+.dept-item:last-child{border-bottom:none;}
+.dept-item .di-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);margin-top:7px;flex-shrink:0;}
+.dept-item .di-text{flex:1;outline:none;color:var(--text2);}
+.dept-item .di-text strong{color:var(--text);}
+.dept-item .li-del{width:16px;height:16px;border-radius:3px;border:none;background:var(--red-bg);color:var(--red);cursor:pointer;font-size:10px;display:none;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
+.dept-item:hover .li-del{display:flex;}
 
-  /* Timeline */
-  .timeline { display:flex; flex-direction:column; gap:16px; }
-  .timeline-item { display:flex; gap:16px; align-items:flex-start; }
-  .timeline-item .tl-status { min-width:80px; text-align:right; color:var(--text-secondary); font-size:13px; }
-  .timeline-item .tl-dot { width:12px; height:12px; border-radius:50%; margin-top:4px; flex-shrink:0; cursor:pointer; }
-  .timeline-item .tl-content { flex:1; }
+/* Links Section */
+.link-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);}
+.link-item:last-child{border-bottom:none;}
+.link-item a{color:var(--blue);font-size:13px;text-decoration:none;flex:1;word-break:break-all;}
+.link-item a:hover{text-decoration:underline;}
+.link-item .link-title{flex:1;outline:none;font-size:13px;color:var(--blue);}
+.link-add-form{display:flex;gap:6px;margin-top:8px;}
+.link-add-form input{flex:1;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;outline:none;}
+.link-add-form input:focus{border-color:var(--accent);}
+.link-add-form button{padding:6px 12px;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-size:12px;white-space:nowrap;}
 
-  /* Module-level controls */
-  .module-card { position:relative; }
-  .module-del { display:none; position:absolute; top:8px; right:8px; width:24px; height:24px; border-radius:6px; border:none; background:var(--red-bg); color:var(--red); cursor:pointer; font-size:16px; z-index:10; align-items:center; justify-content:center; opacity:0.7; transition:opacity 0.2s; }
-  .module-del:hover { opacity:1; }
-  body.edit-mode .module-del { display:flex; }
-  .grid-add { display:none; min-height:100px; border:2px dashed var(--border); border-radius:16px; cursor:pointer; font-size:14px; color:var(--text-secondary); transition:all 0.2s; align-items:center; justify-content:center; gap:8px; background:transparent; width:100%; }
-  .grid-add:hover { border-color:var(--accent); color:var(--accent); background:rgba(108,92,231,0.05); }
-  body.edit-mode .grid-add { display:flex; }
-  .section-del { display:none; width:28px; height:28px; border-radius:6px; border:none; background:var(--red-bg); color:var(--red); cursor:pointer; font-size:16px; align-items:center; justify-content:center; }
-  body.edit-mode .section-del { display:flex; }
-  .add-section-btn { display:none; width:100%; padding:16px; border:2px dashed var(--border); border-radius:16px; background:transparent; color:var(--text-secondary); cursor:pointer; font-size:15px; font-weight:500; transition:all 0.2s; margin-bottom:32px; }
-  .add-section-btn:hover { border-color:var(--accent); color:var(--accent); }
-  body.edit-mode .add-section-btn { display:block; }
+/* People Table in dept */
+.people-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;}
+.people-table th{text-align:left;padding:8px 10px;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border);}
+.people-table td{padding:8px 10px;border-bottom:1px solid var(--border);outline:none;}
+.people-table tr:hover td{background:rgba(108,92,231,.05);}
 
-  /* Toast */
-  .toast { position:fixed; bottom:24px; right:24px; background:var(--green); color:#000; padding:12px 20px; border-radius:10px; font-size:14px; font-weight:500; opacity:0; transform:translateY(20px); transition:all 0.3s; z-index:200; pointer-events:none; }
-  .toast.show { opacity:1; transform:translateY(0); }
+/* Section add card */
+.add-card{border:2px dashed var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;min-height:80px;cursor:pointer;color:var(--text2);font-size:13px;transition:all .2s;}
+.add-card:hover{border-color:var(--accent);color:var(--accent);background:rgba(108,92,231,.04);}
 
-  footer { text-align:center; padding:40px 0 20px; color:var(--text-secondary); font-size:12px; }
+/* Add section */
+.add-section{border:2px dashed var(--border);border-radius:16px;padding:16px;text-align:center;cursor:pointer;color:var(--text2);font-size:14px;margin-bottom:24px;transition:all .2s;}
+.add-section:hover{border-color:var(--accent);color:var(--accent);}
 
-  @media(max-width:768px) {
-    .charts-grid { grid-template-columns:1fr; }
-    .alerts-grid,.report-grid { grid-template-columns:1fr; }
-    .toolbar h1 { font-size:18px; }
-  }
+/* Toast */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--green);color:#000;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;opacity:0;transform:translateY(16px);transition:all .3s;z-index:300;pointer-events:none;}
+.toast.show{opacity:1;transform:translateY(0);}
+
+footer{text-align:center;padding:30px 0 16px;color:var(--text2);font-size:11px;}
+
+/* Drag handle cursor */
+.drag-handle{cursor:grab;}
+.drag-handle:active{cursor:grabbing;}
+
+/* Sortable placeholder */
+.sortable-drag{opacity:.8;box-shadow:0 12px 40px rgba(0,0,0,.5);}
+
+@media(max-width:768px){
+  .cards{grid-template-columns:1fr!important;}
+  .sidebar.open{width:220px;}
+  .dept-detail{padding:20px;}
+}
 </style>
 </head>
 <body>
-<div class="container">
-  <!-- Sticky Toolbar -->
-  <div class="toolbar">
-    <div style="display:flex;align-items:center;gap:12px;">
-      <h1>研发HRBP月报看板</h1>
-      <span class="period-badge" contenteditable="false">2026年3月 | 截止 3/13</span>
-    </div>
-    <div class="toolbar-actions">
-      <span class="edit-indicator" id="editIndicator">编辑模式已开启</span>
-      <button class="btn btn-accent" id="editToggle" onclick="toggleEditMode()">✏️ 开启编辑</button>
-      <button class="btn btn-green" onclick="saveData()">💾 保存</button>
-      <button class="btn" onclick="exportHTML()">📤 导出HTML</button>
-      <button class="btn btn-red" onclick="resetData()" style="font-size:12px;">↻ 重置</button>
-    </div>
-  </div>
 
-  <!-- Key Stats -->
-  <div class="section" id="sectionStats">
-  <div class="section-header">
-    <div class="section-title">关键数据</div>
-    <button class="section-del" onclick="deleteSection(this)">×</button>
+<!-- Toolbar -->
+<div class="toolbar">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <h1>研发HRBP月报看板</h1>
+    <span class="period-badge" contenteditable="true">2026年3月</span>
   </div>
-  <div class="stats-grid" id="statsGrid">
-    <div class="stat-card danger module-card">
-      <button class="module-del" onclick="this.parentElement.remove()">×</button>
-      <div class="label" contenteditable="false">本月离职/待离职</div>
-      <div class="value" contenteditable="false">55</div>
-      <div class="sub" contenteditable="false">自驾43 · ITED 11 · 无人机1</div>
-    </div>
-    <div class="stat-card warning module-card">
-      <button class="module-del" onclick="this.parentElement.remove()">×</button>
-      <div class="label" contenteditable="false">关键风险人员</div>
-      <div class="value" contenteditable="false">9</div>
-      <div class="sub" contenteditable="false">含上海算法5人 · 唐承川 · 石磊等</div>
-    </div>
-    <div class="stat-card info module-card">
-      <button class="module-del" onclick="this.parentElement.remove()">×</button>
-      <div class="label" contenteditable="false">研发总人数</div>
-      <div class="value" contenteditable="false">1,100+</div>
-      <div class="sub" contenteditable="false">三大一级部门合计</div>
-    </div>
-    <div class="stat-card warning module-card">
-      <button class="module-del" onclick="this.parentElement.remove()">×</button>
-      <div class="label" contenteditable="false">新任干部培养中</div>
-      <div class="value" contenteditable="false">5</div>
-      <div class="sub" contenteditable="false">陈炯 · 薛冰 · Jason · 文恒 · 徐琳</div>
-    </div>
-    <div class="stat-card info module-card">
-      <button class="module-del" onclick="this.parentElement.remove()">×</button>
-      <div class="label" contenteditable="false">待招HC</div>
-      <div class="value" contenteditable="false">40+</div>
-      <div class="sub" contenteditable="false">数字化效能部为主</div>
-    </div>
-    <div class="stat-card success module-card">
-      <button class="module-del" onclick="this.parentElement.remove()">×</button>
-      <div class="label" contenteditable="false">BP团队</div>
-      <div class="value" contenteditable="false">4</div>
-      <div class="sub" contenteditable="false">vinnie · tt · yvette · 冷静</div>
-    </div>
-    <button class="grid-add" onclick="addStatCard(this)">+ 添加统计卡片</button>
+  <div class="toolbar-actions">
+    <span class="edit-on" id="editOn">编辑中</span>
+    <button class="btn btn-accent" id="toggleSidebar" onclick="toggleSidebar()">🧩 模版工具库</button>
+    <button class="btn btn-green" onclick="saveAll()">💾 保存</button>
+    <button class="btn" onclick="exportHTML()">📤 导出</button>
+    <button class="btn" onclick="resetAll()" style="color:var(--red);">↻ 重置</button>
   </div>
-  </div>
-
-  <!-- Alerts -->
-  <div class="section" id="sectionAlerts">
-    <div class="section-header">
-      <div class="section-title">红灯预警</div>
-      <button class="section-del" onclick="deleteSection(this)">×</button>
-    </div>
-    <div class="alerts-grid">
-      <div class="alert-card module-card" id="alertTurnover">
-        <button class="module-del" onclick="this.parentElement.remove()">×</button>
-        <h3 contenteditable="false">🔴 离职潮</h3>
-        <ul class="alert-list">
-          <li><span class="alert-text" contenteditable="false"><strong>AI模型部</strong> 离职15人，算法人才保留是核心</span><span class="tag tag-red" contenteditable="false">最严重</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
-          <li><span class="alert-text" contenteditable="false"><strong>嵌入式底软</strong> 1月至今离职5+待离职2，离职率同比↑6%</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
-          <li><span class="alert-text" contenteditable="false"><strong>系统工程交付部</strong> 多人在看机会，离职率持续攀高</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
-          <li><span class="alert-text" contenteditable="false"><strong>数字化效能部</strong> 希文/东霖/张轶离职造成冲击</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
-        </ul>
-        <button class="add-btn" onclick="addAlertItem(this)">+ 添加预警项</button>
-      </div>
-      <div class="alert-card orange module-card" id="alertRisk">
-        <button class="module-del" onclick="this.parentElement.remove()">×</button>
-        <h3 contenteditable="false">🟡 关键人员风险</h3>
-        <ul class="alert-list">
-          <li><span class="alert-text" contenteditable="false"><strong>唐承川、石磊</strong> — 数字化效能部标记风险</span><span class="tag tag-orange" contenteditable="false">关注</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
-          <li><span class="alert-text" contenteditable="false"><strong>上海算法团队</strong> — 15人访谈，5人识别离职风险</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
-          <li><span class="alert-text" contenteditable="false"><strong>jiale.huang</strong> — 机电三级leader待离职，竞业待确认</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
-          <li><span class="alert-text" contenteditable="false"><strong>ITED骨干</strong> — 遭sven挖猎</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
-        </ul>
-        <button class="add-btn" onclick="addAlertItem(this)">+ 添加预警项</button>
-      </div>
-      <div class="alert-card blue module-card" id="alertConflict">
-        <button class="module-del" onclick="this.parentElement.remove()">×</button>
-        <h3 contenteditable="false">🔵 协作冲突</h3>
-        <ul class="alert-list">
-          <li><span class="alert-text" contenteditable="false"><strong>自驾 vs ST</strong> — 经营单元人员带宽和考核归属有摩擦</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
-          <li><span class="alert-text" contenteditable="false"><strong>ITED内部</strong> — 协作矛盾声音多，已建立改进动作</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
-          <li><span class="alert-text" contenteditable="false"><strong>系统架构部dosa</strong> — 集成与架构两组流程冲突频发</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
-          <li><span class="alert-text" contenteditable="false"><strong>数据工程 vs 自驾</strong> — 数据闭环协同阻力大</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
-        </ul>
-        <button class="add-btn" onclick="addAlertItem(this)">+ 添加预警项</button>
-      </div>
-      <button class="grid-add" onclick="addAlertCard(this)">+ 添加预警类别</button>
-    </div>
-  </div>
-
-  <!-- Charts -->
-  <div class="section" id="sectionCharts">
-    <div class="section-header">
-      <div class="section-title">数据概览</div>
-      <button class="section-del" onclick="deleteSection(this)">×</button>
-    </div>
-    <div class="charts-grid">
-      <div class="chart-card module-card"><button class="module-del" onclick="this.parentElement.remove()">×</button><h3>各二级部门人数分布（自驾研发部）</h3><div class="chart-container"><canvas id="headcountChart"></canvas></div></div>
-      <div class="chart-card module-card"><button class="module-del" onclick="this.parentElement.remove()">×</button><h3>离职人数分布</h3><div class="chart-container"><canvas id="turnoverChart"></canvas></div></div>
-      <div class="chart-card module-card"><button class="module-del" onclick="this.parentElement.remove()">×</button><h3>三大一级部门人数对比</h3><div class="chart-container"><canvas id="deptChart"></canvas></div></div>
-      <div class="chart-card module-card"><button class="module-del" onclick="this.parentElement.remove()">×</button><h3>新任干部培养进度</h3><div class="chart-container"><canvas id="leaderChart"></canvas></div></div>
-    </div>
-  </div>
-
-  <!-- Leader Tracking -->
-  <div class="section" id="sectionLeader">
-    <div class="section-header">
-      <div class="section-title">新任干部上岗追踪</div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <button class="add-btn" style="width:auto;margin:0;display:none;" id="addLeaderBtn" onclick="addLeaderRow()">+ 添加干部</button>
-        <button class="section-del" onclick="deleteSection(this)">×</button>
-      </div>
-    </div>
-    <div class="table-wrap">
-      <table class="leader-table" id="leaderTable">
-        <thead><tr><th>姓名</th><th>部门</th><th>状态</th><th>评价要点</th><th>风险</th><th class="actions-col"></th></tr></thead>
-        <tbody>
-          <tr><td contenteditable="false"><strong>陈炯</strong></td><td contenteditable="false">嵌入式平台部</td><td><select class="status-select" onchange="updateDot(this)" disabled><option value="green" selected>见习中</option><option value="orange">待答辩</option><option value="red">暂缓</option></select></td><td contenteditable="false">管理带宽80%，业务/团队规划有思考，需提升团队影响力</td><td><span class="tag tag-orange" contenteditable="false">底软离职潮</span></td><td><button class="delete-btn" onclick="this.closest('tr').remove()">×</button></td></tr>
-          <tr><td contenteditable="false"><strong>薛冰</strong></td><td contenteditable="false">系统架构部</td><td><select class="status-select" onchange="updateDot(this)" disabled><option value="green" selected>见习中</option><option value="orange">待答辩</option><option value="red">暂缓</option></select></td><td contenteditable="false">有意识转变，但过于事无巨细不抓重点，部门缺乏凝聚力</td><td><span class="tag tag-orange" contenteditable="false">部门没聚成气</span></td><td><button class="delete-btn" onclick="this.closest('tr').remove()">×</button></td></tr>
-          <tr><td contenteditable="false"><strong>Jason</strong></td><td contenteditable="false">机电系统部</td><td><select class="status-select" onchange="updateDot(this)" disabled><option value="green">见习中</option><option value="orange" selected>待答辩</option><option value="red">暂缓</option></select></td><td contenteditable="false">管理认知强，杀伐果断，不陷入个人感情</td><td><span class="tag tag-orange" contenteditable="false">对部分人有冲击</span></td><td><button class="delete-btn" onclick="this.closest('tr').remove()">×</button></td></tr>
-          <tr><td contenteditable="false"><strong>文恒</strong></td><td contenteditable="false">数据工程部</td><td><select class="status-select" onchange="updateDot(this)" disabled><option value="green">见习中</option><option value="orange">待答辩</option><option value="red" selected>暂缓</option></select></td><td contenteditable="false">指令型管理，团队驱动不足，两位三级leader离职</td><td><span class="tag tag-red" contenteditable="false">团队动荡</span></td><td><button class="delete-btn" onclick="this.closest('tr').remove()">×</button></td></tr>
-          <tr><td contenteditable="false"><strong>徐琳</strong></td><td contenteditable="false">流程IT部</td><td><select class="status-select" onchange="updateDot(this)" disabled><option value="green">见习中</option><option value="orange" selected>待答辩</option><option value="red">暂缓</option></select></td><td contenteditable="false">素养较好，管理经验浅，需加强技术深度理解</td><td><span class="tag tag-orange" contenteditable="false">三级有意见</span></td><td><button class="delete-btn" onclick="this.closest('tr').remove()">×</button></td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- BP Progress -->
-  <div class="section" id="sectionBP">
-    <div class="section-header">
-      <div class="section-title">下属BP工作进展</div>
-      <button class="section-del" onclick="deleteSection(this)">×</button>
-    </div>
-    <div class="bp-grid">
-      <div class="bp-card module-card">
-        <button class="module-del" onclick="this.parentElement.remove()">×</button>
-        <h3 contenteditable="false">vinnie.zeng</h3>
-        <div class="scope" contenteditable="false">智研软件 · AI软件 · 嵌入式 · 控制器产品 · 机电 · 无人机（6个部门）</div>
-        <input type="range" class="progress-input" min="0" max="100" value="75" oninput="updateProgress(this)" disabled>
-        <div class="progress-bar"><div class="fill" style="width:75%;background:linear-gradient(90deg,var(--accent),var(--blue))"></div></div>
-        <div class="task-list">
-          <div class="task-item"><span class="icon task-done" onclick="toggleTask(this)">✓</span><span class="task-text" contenteditable="false">AI软件部四级小组阵型梳理初步完成</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
-          <div class="task-item"><span class="icon task-done" onclick="toggleTask(this)">✓</span><span class="task-text" contenteditable="false">嵌入式陈炯培养+丁瑞管理提升会4期</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
-          <div class="task-item"><span class="icon task-done" onclick="toggleTask(this)">✓</span><span class="task-text" contenteditable="false">控制器产品部backup培养计划完成</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
-          <div class="task-item"><span class="icon task-done" onclick="toggleTask(this)">✓</span><span class="task-text" contenteditable="false">机电Jason上岗+组织阵型宣导</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
-          <div class="task-item"><span class="icon task-done" onclick="toggleTask(this)">✓</span><span class="task-text" contenteditable="false">无人机组织诊断报告完成</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
-          <div class="task-item"><span class="icon task-pending" onclick="toggleTask(this)">◷</span><span class="task-text" contenteditable="false">智研软件部TTE问卷回收中</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
-        </div>
-        <button class="add-btn" onclick="addTaskItem(this)">+ 添加任务</button>
-      </div>
-      <div class="bp-card module-card">
-        <button class="module-del" onclick="this.parentElement.remove()">×</button>
-        <h3 contenteditable="false">tt.guo</h3>
-        <div class="scope" contenteditable="false">AI模型 · 行为智能 · 时空数据 · 行车产品 · 泊车产品（5个部门）</div>
-        <input type="range" class="progress-input" min="0" max="100" value="60" oninput="updateProgress(this)" disabled>
-        <div class="progress-bar"><div class="fill" style="width:60%;background:linear-gradient(90deg,var(--accent),var(--green))"></div></div>
-        <div class="task-list">
-          <div class="task-item"><span class="icon task-done" onclick="toggleTask(this)">✓</span><span class="task-text" contenteditable="false">上海算法15人1v1访谈，输出诊断报告</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
-          <div class="task-item"><span class="icon task-done" onclick="toggleTask(this)">✓</span><span class="task-text" contenteditable="false">行为智能部团队管理阵型梳理完成</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
-          <div class="task-item"><span class="icon task-done" onclick="toggleTask(this)">✓</span><span class="task-text" contenteditable="false">行车产品部GTT新阵型落地运行1个月</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
-          <div class="task-item"><span class="icon task-pending" onclick="toggleTask(this)">◷</span><span class="task-text" contenteditable="false">AI模型部可视化人才看板3月落地</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
-          <div class="task-item"><span class="icon task-pending" onclick="toggleTask(this)">◷</span><span class="task-text" contenteditable="false">量产vs预研分工，涉及40+人调整</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
-          <div class="task-item"><span class="icon task-pending" onclick="toggleTask(this)">◷</span><span class="task-text" contenteditable="false">汪哲培IDP计划进行中</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
-        </div>
-        <button class="add-btn" onclick="addTaskItem(this)">+ 添加任务</button>
-      </div>
-      <div class="bp-card module-card">
-        <button class="module-del" onclick="this.parentElement.remove()">×</button>
-        <h3 contenteditable="false">yvette.he</h3>
-        <div class="scope" contenteditable="false">系统工程交付 · 系统架构 · 测试 · 功能安全（4个部门）</div>
-        <input type="range" class="progress-input" min="0" max="100" value="65" oninput="updateProgress(this)" disabled>
-        <div class="progress-bar"><div class="fill" style="width:65%;background:linear-gradient(90deg,var(--blue),var(--green))"></div></div>
-        <div class="task-list">
-          <div class="task-item"><span class="icon task-done" onclick="toggleTask(this)">✓</span><span class="task-text" contenteditable="false">SED内部人员能力摸排完成</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
-          <div class="task-item"><span class="icon task-done" onclick="toggleTask(this)">✓</span><span class="task-text" contenteditable="false">TPL职责梳理完成，下周业务评审</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
-          <div class="task-item"><span class="icon task-done" onclick="toggleTask(this)">✓</span><span class="task-text" contenteditable="false">薛冰培养：业务地图+双周导师沟通</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
-          <div class="task-item"><span class="icon task-done" onclick="toggleTask(this)">✓</span><span class="task-text" contenteditable="false">功能安全高T张弛顺利landing</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
-          <div class="task-item"><span class="icon task-pending" onclick="toggleTask(this)">◷</span><span class="task-text" contenteditable="false">测试部张鹏上岗培养计划制定中</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
-          <div class="task-item"><span class="icon task-pending" onclick="toggleTask(this)">◷</span><span class="task-text" contenteditable="false">SED年度组织诊断访谈待启动</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
-        </div>
-        <button class="add-btn" onclick="addTaskItem(this)">+ 添加任务</button>
-      </div>
-      <div class="bp-card module-card">
-        <button class="module-del" onclick="this.parentElement.remove()">×</button>
-        <h3 contenteditable="false">冷静</h3>
-        <div class="scope" contenteditable="false">数字化效能部整体（数据工程 · 基础架构 · 流程IT · 信息安全）</div>
-        <input type="range" class="progress-input" min="0" max="100" value="45" oninput="updateProgress(this)" disabled>
-        <div class="progress-bar"><div class="fill" style="width:45%;background:linear-gradient(90deg,var(--orange),var(--accent))"></div></div>
-        <div class="task-list">
-          <div class="task-item"><span class="icon task-done" onclick="toggleTask(this)">✓</span><span class="task-text" contenteditable="false">部门看板搭建（在职+离职）</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
-          <div class="task-item"><span class="icon task-done" onclick="toggleTask(this)">✓</span><span class="task-text" contenteditable="false">协同提升方案已输出</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
-          <div class="task-item"><span class="icon task-pending" onclick="toggleTask(this)">◷</span><span class="task-text" contenteditable="false">三级leader系列培养交流进行中</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
-          <div class="task-item"><span class="icon task-pending" onclick="toggleTask(this)">◷</span><span class="task-text" contenteditable="false">文恒团队稳定性建设持续关注</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
-          <div class="task-item"><span class="icon task-pending" onclick="toggleTask(this)">◷</span><span class="task-text" contenteditable="false">徐琳暂代流程IT，2个月考察期</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
-        </div>
-        <button class="add-btn" onclick="addTaskItem(this)">+ 添加任务</button>
-      </div>
-      <button class="grid-add" onclick="addBPCard(this)">+ 添加BP</button>
-    </div>
-  </div>
-
-  <!-- Report to Leaders -->
-  <div class="section" id="sectionReport">
-    <div class="section-header">
-      <div class="section-title">向一号位汇报建议</div>
-      <button class="section-del" onclick="deleteSection(this)">×</button>
-    </div>
-    <div class="report-grid">
-      <div class="report-card module-card">
-        <button class="module-del" onclick="this.parentElement.remove()">×</button>
-        <h3 contenteditable="false">📋 向马陆汇报</h3>
-        <ol class="report-list">
-          <li><span class="report-text" contenteditable="false"><strong>离职形势：</strong>自驾部已提单+待提单43人，AI模型部15人最多，算法人才保留是重点</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
-          <li><span class="report-text" contenteditable="false"><strong>移动基模Kickoff后：</strong>需明确量产与预研人员分工（涉及40+人），避免交付和探索两头不落</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
-          <li><span class="report-text" contenteditable="false"><strong>嵌入式底软：</strong>今年已离/待离7人，丁瑞新任leader需继续关注</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
-        </ol>
-        <button class="add-btn" onclick="addReportItem(this)">+ 添加要点</button>
-      </div>
-      <div class="report-card module-card">
-        <button class="module-del" onclick="this.parentElement.remove()">×</button>
-        <h3 contenteditable="false">📋 向王斌汇报</h3>
-        <ol class="report-list">
-          <li><span class="report-text" contenteditable="false"><strong>ITED离职：</strong>11人 + 骨干被sven挖，需重点关注团队稳定性</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
-          <li><span class="report-text" contenteditable="false"><strong>数据工程部：</strong>文恒团队管理问题 + 数据闭环与自驾协同阻力，转M暂缓</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
-          <li><span class="report-text" contenteditable="false"><strong>流程IT：</strong>新任leader徐琳上岗，三级有意见，需关注团队氛围</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
-          <li><span class="report-text" contenteditable="false"><strong>风险人员：</strong>唐承川、石磊有风险标记</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
-        </ol>
-        <button class="add-btn" onclick="addReportItem(this)">+ 添加要点</button>
-      </div>
-      <div class="report-card module-card">
-        <button class="module-del" onclick="this.parentElement.remove()">×</button>
-        <h3 contenteditable="false">📋 向黄永结汇报</h3>
-        <ol class="report-list">
-          <li><span class="report-text" contenteditable="false"><strong>团队凝聚力：</strong>来源广泛，向心力需关注</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
-          <li><span class="report-text" contenteditable="false"><strong>测试能力：</strong>测试团队能力建设待提升</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
-          <li><span class="report-text" contenteditable="false"><strong>产品研发：</strong>后装一代产品研发节奏风险待关注</span><button class="delete-btn" onclick="this.parentElement.remove()">×</button></li>
-        </ol>
-        <button class="add-btn" onclick="addReportItem(this)">+ 添加要点</button>
-      </div>
-      <button class="grid-add" onclick="addReportCard(this)">+ 添加汇报对象</button>
-    </div>
-  </div>
-
-  <!-- Timeline -->
-  <div class="section" id="sectionTimeline">
-    <div class="section-header">
-      <div class="section-title">本月关键事项时间线</div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <button class="add-btn" style="width:auto;margin:0;display:none;" id="addTimelineBtn" onclick="addTimelineItem()">+ 添加事项</button>
-        <button class="section-del" onclick="deleteSection(this)">×</button>
-      </div>
-    </div>
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;">
-      <div class="timeline" id="timeline">
-        <div class="timeline-item"><div class="tl-status" contenteditable="false">进行中</div><div class="tl-dot" style="background:var(--orange);" onclick="cycleColor(this)"></div><div class="tl-content" contenteditable="false"><strong>TTE问卷</strong> — 已发放，正在回收，预计下周开始数据分析</div><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
-        <div class="timeline-item"><div class="tl-status" contenteditable="false">进行中</div><div class="tl-dot" style="background:var(--orange);" onclick="cycleColor(this)"></div><div class="tl-content" contenteditable="false"><strong>AI模型部量产vs预研分工</strong> — 涉及40+人职责调整</div><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
-        <div class="timeline-item"><div class="tl-status" contenteditable="false">已完成</div><div class="tl-dot" style="background:var(--green);" onclick="cycleColor(this)"></div><div class="tl-content" contenteditable="false"><strong>机电组织架构调整</strong> — 三级leader调整，需继续观察运转</div><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
-        <div class="timeline-item"><div class="tl-status" contenteditable="false">即将开始</div><div class="tl-dot" style="background:var(--blue);" onclick="cycleColor(this)"></div><div class="tl-content" contenteditable="false"><strong>调薪沟通</strong> — 配合SED组织诊断访谈同步开展</div><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
-        <div class="timeline-item"><div class="tl-status" contenteditable="false">持续</div><div class="tl-dot" style="background:var(--accent);" onclick="cycleColor(this)"></div><div class="tl-content" contenteditable="false"><strong>5位新任干部并行培养</strong> — 陈炯/薛冰/Jason/文恒/徐琳</div><button class="delete-btn" onclick="this.parentElement.remove()">×</button></div>
-      </div>
-    </div>
-  </div>
-
-  <button class="add-section-btn" onclick="addSection(this)">+ 添加新板块</button>
-  <footer>研发HRBP月报可视化看板 · hilary's AI agent · 数据来源：研发HRBP重点工作月报 2026/3</footer>
 </div>
 
-<div class="toast" id="toast">已保存</div>
+<div class="main">
+  <!-- Content -->
+  <div class="content" id="content">
+
+    <!-- Section 1: 关键数据 -->
+    <div class="section" data-section="stats">
+      <div class="section-header">
+        <div class="section-title" contenteditable="true">关键数据</div>
+        <div class="section-actions">
+          <button class="icon-btn add" onclick="addCardTo(this,'stat')" title="添加统计卡片">+</button>
+          <button class="icon-btn del" onclick="delSection(this)" title="删除板块">×</button>
+        </div>
+      </div>
+      <div class="cards stat-cards">
+        <div class="s-card danger"><button class="card-del" onclick="event.stopPropagation();this.parentElement.remove()">×</button><div class="lbl" contenteditable="true">本月离职/待离职</div><div class="val" contenteditable="true">55</div><div class="sub" contenteditable="true">自驾43 · ITED11 · 无人机1</div></div>
+        <div class="s-card warning"><button class="card-del" onclick="event.stopPropagation();this.parentElement.remove()">×</button><div class="lbl" contenteditable="true">关键风险人员</div><div class="val" contenteditable="true">9</div><div class="sub" contenteditable="true">含上海算法5人 · 唐承川 · 石磊等</div></div>
+        <div class="s-card info"><button class="card-del" onclick="event.stopPropagation();this.parentElement.remove()">×</button><div class="lbl" contenteditable="true">研发总人数</div><div class="val" contenteditable="true">1,100+</div><div class="sub" contenteditable="true">三大一级部门合计</div></div>
+        <div class="s-card warning"><button class="card-del" onclick="event.stopPropagation();this.parentElement.remove()">×</button><div class="lbl" contenteditable="true">新任干部</div><div class="val" contenteditable="true">5</div><div class="sub" contenteditable="true">陈炯·薛冰·Jason·文恒·徐琳</div></div>
+        <div class="s-card info"><button class="card-del" onclick="event.stopPropagation();this.parentElement.remove()">×</button><div class="lbl" contenteditable="true">待招HC</div><div class="val" contenteditable="true">40+</div><div class="sub" contenteditable="true">数字化效能部为主</div></div>
+        <div class="s-card success"><button class="card-del" onclick="event.stopPropagation();this.parentElement.remove()">×</button><div class="lbl" contenteditable="true">BP团队</div><div class="val" contenteditable="true">4</div><div class="sub" contenteditable="true">vinnie·tt·yvette·冷静</div></div>
+      </div>
+    </div>
+
+    <!-- Section 2: 关键信息汇总 -->
+    <div class="section" data-section="info">
+      <div class="section-header">
+        <div class="section-title" contenteditable="true">关键信息汇总</div>
+        <div class="section-actions">
+          <button class="icon-btn add" onclick="addCardTo(this,'info')" title="添加信息卡片">+</button>
+          <button class="icon-btn del" onclick="delSection(this)" title="删除板块">×</button>
+        </div>
+      </div>
+      <div class="cards wide info-cards">
+        <div class="i-card red"><button class="card-del" onclick="event.stopPropagation();this.parentElement.remove()">×</button><h4 contenteditable="true">🔴 离职潮预警</h4><ul>
+          <li><span class="li-text" contenteditable="true"><strong>AI模型部</strong> 离职15人，算法人才保留是核心</span><button class="li-del" onclick="this.parentElement.remove()">×</button></li>
+          <li><span class="li-text" contenteditable="true"><strong>嵌入式底软</strong> 1月至今离职5+待离职2</span><button class="li-del" onclick="this.parentElement.remove()">×</button></li>
+          <li><span class="li-text" contenteditable="true"><strong>系统工程交付部</strong> 多人在看机会</span><button class="li-del" onclick="this.parentElement.remove()">×</button></li>
+          <li><span class="li-text" contenteditable="true"><strong>数字化效能部</strong> 希文/东霖/张轶离职冲击</span><button class="li-del" onclick="this.parentElement.remove()">×</button></li>
+        </ul><button class="li-add" onclick="addListItem(this)">+ 添加</button></div>
+        <div class="i-card orange"><button class="card-del" onclick="event.stopPropagation();this.parentElement.remove()">×</button><h4 contenteditable="true">🟡 关键人员风险</h4><ul>
+          <li><span class="li-text" contenteditable="true"><strong>唐承川、石磊</strong> — 数字化效能部标记风险</span><button class="li-del" onclick="this.parentElement.remove()">×</button></li>
+          <li><span class="li-text" contenteditable="true"><strong>上海算法团队</strong> — 15人访谈，5人识别离职风险</span><button class="li-del" onclick="this.parentElement.remove()">×</button></li>
+          <li><span class="li-text" contenteditable="true"><strong>jiale.huang</strong> — 机电三级leader待离职</span><button class="li-del" onclick="this.parentElement.remove()">×</button></li>
+        </ul><button class="li-add" onclick="addListItem(this)">+ 添加</button></div>
+        <div class="i-card blue"><button class="card-del" onclick="event.stopPropagation();this.parentElement.remove()">×</button><h4 contenteditable="true">🔵 协作冲突</h4><ul>
+          <li><span class="li-text" contenteditable="true"><strong>自驾 vs ST</strong> — 人员带宽和考核归属摩擦</span><button class="li-del" onclick="this.parentElement.remove()">×</button></li>
+          <li><span class="li-text" contenteditable="true"><strong>ITED内部</strong> — 协作矛盾，已建立改进动作</span><button class="li-del" onclick="this.parentElement.remove()">×</button></li>
+          <li><span class="li-text" contenteditable="true"><strong>数据工程 vs 自驾</strong> — 数据闭环协同阻力</span><button class="li-del" onclick="this.parentElement.remove()">×</button></li>
+        </ul><button class="li-add" onclick="addListItem(this)">+ 添加</button></div>
+        <div class="i-card green"><button class="card-del" onclick="event.stopPropagation();this.parentElement.remove()">×</button><h4 contenteditable="true">📋 向一号位汇报要点</h4><ul>
+          <li><span class="li-text" contenteditable="true"><strong>马陆：</strong>离职形势43人、量产vs预研分工、底软离职</span><button class="li-del" onclick="this.parentElement.remove()">×</button></li>
+          <li><span class="li-text" contenteditable="true"><strong>王斌：</strong>ITED离职11人、文恒管理问题、徐琳上岗、风险人员</span><button class="li-del" onclick="this.parentElement.remove()">×</button></li>
+          <li><span class="li-text" contenteditable="true"><strong>黄永结：</strong>团队凝聚力、测试能力建设、产品研发节奏</span><button class="li-del" onclick="this.parentElement.remove()">×</button></li>
+        </ul><button class="li-add" onclick="addListItem(this)">+ 添加</button></div>
+        <div class="i-card"><button class="card-del" onclick="event.stopPropagation();this.parentElement.remove()">×</button><h4 contenteditable="true">📅 本月关键事项</h4><ul>
+          <li><span class="li-text" contenteditable="true"><strong>TTE问卷</strong> — 已发放，正在回收</span><button class="li-del" onclick="this.parentElement.remove()">×</button></li>
+          <li><span class="li-text" contenteditable="true"><strong>AI模型量产vs预研分工</strong> — 涉及40+人</span><button class="li-del" onclick="this.parentElement.remove()">×</button></li>
+          <li><span class="li-text" contenteditable="true"><strong>调薪沟通</strong> — 配合SED组织诊断</span><button class="li-del" onclick="this.parentElement.remove()">×</button></li>
+          <li><span class="li-text" contenteditable="true"><strong>5位新任干部</strong> — 并行培养中</span><button class="li-del" onclick="this.parentElement.remove()">×</button></li>
+        </ul><button class="li-add" onclick="addListItem(this)">+ 添加</button></div>
+      </div>
+    </div>
+
+    <!-- Section 3: 部门看板 -->
+    <div class="section" data-section="dept">
+      <div class="section-header">
+        <div class="section-title" contenteditable="true">部门看板</div>
+        <div class="section-actions">
+          <button class="icon-btn add" onclick="addDeptCard(this)" title="添加部门">+</button>
+          <button class="icon-btn del" onclick="delSection(this)" title="删除板块">×</button>
+        </div>
+      </div>
+      <div class="cards wide dept-cards" id="deptGrid">
+        <div class="d-card" data-dept="ad" onclick="openDept('ad')"><button class="card-del" onclick="event.stopPropagation();this.parentElement.remove()">×</button>
+          <div class="d-head"><div><div class="d-name">自动驾驶研发部</div><div class="d-leader">负责人：马陆</div></div></div>
+          <div class="d-stats"><div class="d-stat"><div class="d-num" style="color:var(--blue)">813</div><div class="d-label">总人数</div></div><div class="d-stat"><div class="d-num" style="color:var(--red)">43</div><div class="d-label">离职</div></div><div class="d-stat"><div class="d-num" style="color:var(--orange)">14</div><div class="d-label">二级部门</div></div></div>
+          <div class="d-bp">BP: vinnie · tt · yvette</div>
+          <span class="d-enter">点击进入详情 →</span>
+        </div>
+        <div class="d-card" data-dept="ited" onclick="openDept('ited')"><button class="card-del" onclick="event.stopPropagation();this.parentElement.remove()">×</button>
+          <div class="d-head"><div><div class="d-name">数字化效能部</div><div class="d-leader">负责人：王斌</div></div></div>
+          <div class="d-stats"><div class="d-stat"><div class="d-num" style="color:var(--blue)">215</div><div class="d-label">总人数</div></div><div class="d-stat"><div class="d-num" style="color:var(--red)">11</div><div class="d-label">离职</div></div><div class="d-stat"><div class="d-num" style="color:var(--orange)">4</div><div class="d-label">二级部门</div></div></div>
+          <div class="d-bp">BP: 冷静</div>
+          <span class="d-enter">点击进入详情 →</span>
+        </div>
+        <div class="d-card" data-dept="uav" onclick="openDept('uav')"><button class="card-del" onclick="event.stopPropagation();this.parentElement.remove()">×</button>
+          <div class="d-head"><div><div class="d-name">车载无人机研发部</div><div class="d-leader">负责人：黄永结</div></div></div>
+          <div class="d-stats"><div class="d-stat"><div class="d-num" style="color:var(--blue)">27</div><div class="d-label">总人数</div></div><div class="d-stat"><div class="d-num" style="color:var(--red)">1</div><div class="d-label">离职</div></div><div class="d-stat"><div class="d-num" style="color:var(--orange)">—</div><div class="d-label">二级部门</div></div></div>
+          <div class="d-bp">BP: vinnie</div>
+          <span class="d-enter">点击进入详情 →</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="add-section" onclick="addNewSection()">+ 添加新板块</div>
+  </div>
+
+  <!-- Template Library Sidebar -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-inner">
+      <h2>模版工具库</h2>
+      <p style="font-size:11px;color:var(--text2);margin-bottom:14px;">拖拽模版到左侧任意板块中</p>
+      <div id="tplList">
+        <div class="tpl-item" data-tpl="stat"><div class="tpl-icon">📊</div><div class="tpl-label">统计卡片<div class="sub">数字+标签+说明</div></div></div>
+        <div class="tpl-item" data-tpl="info"><div class="tpl-icon">📋</div><div class="tpl-label">信息卡片<div class="sub">标题+条目列表</div></div></div>
+        <div class="tpl-item" data-tpl="dept"><div class="tpl-icon">🏢</div><div class="tpl-label">部门卡片<div class="sub">部门概览+子页面</div></div></div>
+        <div class="tpl-item" data-tpl="task"><div class="tpl-icon">✅</div><div class="tpl-label">任务清单<div class="sub">待办/已完成</div></div></div>
+        <div class="tpl-item" data-tpl="people"><div class="tpl-icon">👤</div><div class="tpl-label">人员表格<div class="sub">姓名·部门·状态·备注</div></div></div>
+        <div class="tpl-item" data-tpl="links"><div class="tpl-icon">🔗</div><div class="tpl-label">链接卡片<div class="sub">飞书/外部链接集合</div></div></div>
+        <div class="tpl-item" data-tpl="text"><div class="tpl-icon">📝</div><div class="tpl-label">自由文本<div class="sub">自定义富文本区域</div></div></div>
+        <div class="tpl-item" data-tpl="progress"><div class="tpl-icon">📈</div><div class="tpl-label">进度卡片<div class="sub">名称+进度条+任务</div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Department Detail Overlay -->
+<div class="dept-overlay" id="deptOverlay" onclick="if(event.target===this)closeDept()">
+  <div class="dept-detail" id="deptDetail"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<footer>研发HRBP月报看板 · hilary's AI agent</footer>
 
 <script>
-Chart.defaults.color='#8b8fa3';Chart.defaults.borderColor='#2a2e3a';Chart.defaults.font.family="-apple-system,'PingFang SC',sans-serif";
-new Chart(document.getElementById('headcountChart'),{type:'bar',data:{labels:['SED','AI模型','AI软件','行为智能','嵌入式','时空数据','机电','测试','智研软件','功能安全','系统架构','控制器','行车','泊车'],datasets:[{label:'人数',data:[125,103,85,73,105,63,63,56,45,31,28,14,11,11],backgroundColor:'rgba(108,92,231,0.6)',borderColor:'rgba(108,92,231,1)',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#1e2230'}},x:{grid:{display:false},ticks:{font:{size:10},maxRotation:45}}}}});
-new Chart(document.getElementById('turnoverChart'),{type:'doughnut',data:{labels:['AI模型部','嵌入式底软','ITED','其他自驾','无人机'],datasets:[{data:[15,7,11,21,1],backgroundColor:['#ff6b6b','#ffa94d','#ffd43b','#339af0','#868e96'],borderWidth:0,hoverOffset:8}]},options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'right',labels:{padding:16,usePointStyle:true,font:{size:12}}}}}});
-new Chart(document.getElementById('deptChart'),{type:'bar',data:{labels:['自动驾驶研发部','数字化效能部','车载无人机研发部'],datasets:[{label:'总部正式',data:[813,215,27],backgroundColor:'rgba(51,154,240,0.6)',borderRadius:4},{label:'工程/实习',data:[0,8,22],backgroundColor:'rgba(81,207,102,0.5)',borderRadius:4},{label:'本月离职',data:[43,11,1],backgroundColor:'rgba(255,107,107,0.6)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,grid:{color:'#1e2230'}},x:{grid:{display:false}}},plugins:{legend:{labels:{usePointStyle:true,padding:16}}}}});
-new Chart(document.getElementById('leaderChart'),{type:'bar',data:{labels:['陈炯\n嵌入式','薛冰\n系统架构','Jason\n机电','文恒\n数据工程','徐琳\n流程IT'],datasets:[{label:'培养进度%',data:[70,50,40,25,15],backgroundColor:['rgba(81,207,102,0.6)','rgba(51,154,240,0.6)','rgba(255,169,77,0.6)','rgba(255,107,107,0.6)','rgba(134,142,150,0.6)'],borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,scales:{x:{beginAtZero:true,max:100,grid:{color:'#1e2230'},ticks:{callback:v=>v+'%'}},y:{grid:{display:false}}},plugins:{legend:{display:false}}}});
+/* ===== Department Data ===== */
+const deptData = {
+  ad: {
+    name:'自动驾驶研发部', head:'马陆', headcount:813, turnover:43,
+    miniStats:[{label:'总人数',val:'813',color:'var(--blue)'},{label:'本月离职',val:'43',color:'var(--red)'},{label:'待招HC',val:'30+',color:'var(--orange)'},{label:'新任干部',val:'3',color:'var(--green)'}],
+    biz:['移动物理AI技术方向Kickoff，需明确量产与预研人员分工（40+人）','机电组织架构调整完成，Jason上岗','AI软件部四级小组阵型梳理初步完成','行车产品GTT新阵型运行1个月'],
+    pain:['AI模型部离职15人，算法人才保留压力大','嵌入式底软今年已离/待离7人','量产vs预研分工不清，交付和探索两头不落','系统工程交付部多人在看机会'],
+    bpWork:['vinnie: AI软件阵型梳理、嵌入式陈炯培养、机电Jason上岗','tt: 上海算法15人1v1访谈、行为智能阵型梳理、AI模型人才看板','yvette: SED能力摸排、薛冰培养、TPL职责梳理'],
+    people:[{name:'陈炯',dept:'嵌入式平台部',status:'见习中',note:'管理带宽80%，需提升影响力'},{name:'薛冰',dept:'系统架构部',status:'见习中',note:'事无巨细不抓重点'},{name:'Jason',dept:'机电系统部',status:'待答辩',note:'杀伐果断，管理认知强'}],
+    links:[]
+  },
+  ited: {
+    name:'数字化效能部', head:'王斌', headcount:215, turnover:11,
+    miniStats:[{label:'总人数',val:'215',color:'var(--blue)'},{label:'本月离职',val:'11',color:'var(--red)'},{label:'待招HC',val:'10+',color:'var(--orange)'},{label:'新任干部',val:'2',color:'var(--green)'}],
+    biz:['三级leader系列培养交流进行中','协同提升方案已输出','部门看板搭建完成（在职+离职）'],
+    pain:['文恒指令型管理，团队驱动不足，两位三级leader离职','ITED内部协作矛盾声音多','骨干被sven挖猎','唐承川、石磊有风险标记'],
+    bpWork:['冷静: 部门看板搭建、协同提升方案、三级leader培养','冷静: 文恒团队稳定性建设、徐琳暂代流程IT考察'],
+    people:[{name:'文恒',dept:'数据工程部',status:'暂缓转M',note:'团队驱动不足，两位三级离职'},{name:'徐琳',dept:'流程IT部',status:'暂代中',note:'素养好但经验浅，三级有意见'},{name:'唐承川',dept:'数字化效能部',status:'风险',note:'标记离职风险'},{name:'石磊',dept:'数字化效能部',status:'风险',note:'标记离职风险'}],
+    links:[]
+  },
+  uav: {
+    name:'车载无人机研发部', head:'黄永结', headcount:27, turnover:1,
+    miniStats:[{label:'总人数',val:'27',color:'var(--blue)'},{label:'本月离职',val:'1',color:'var(--red)'},{label:'工程/实习',val:'22',color:'var(--orange)'}],
+    biz:['后装一代产品研发推进中','组织诊断报告完成'],
+    pain:['团队来源广泛，向心力需关注','测试团队能力建设待提升','产品研发节奏风险'],
+    bpWork:['vinnie: 无人机组织诊断报告完成'],
+    people:[],
+    links:[]
+  }
+};
 
-let editMode = false;
+/* ===== Open/Close Department Detail ===== */
+function openDept(id) {
+  const d = deptData[id];
+  if (!d) return;
+  const saved = localStorage.getItem('dept_'+id);
+  if (saved) { try { Object.assign(d, JSON.parse(saved)); } catch(e){} }
+  const el = document.getElementById('deptDetail');
+  el.innerHTML = buildDeptHTML(id, d);
+  document.getElementById('deptOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  initDeptSortables(el);
+}
 
-function toggleEditMode() {
-  editMode = !editMode;
-  document.body.classList.toggle('edit-mode', editMode);
-  document.getElementById('editToggle').innerHTML = editMode ? '🔒 锁定' : '✏️ 开启编辑';
-  document.getElementById('editToggle').classList.toggle('btn-accent', !editMode);
-  document.getElementById('editToggle').classList.toggle('btn-green', editMode);
-  document.getElementById('editIndicator').classList.toggle('show', editMode);
-  document.getElementById('addLeaderBtn').style.display = editMode ? 'block' : 'none';
-  document.getElementById('addTimelineBtn').style.display = editMode ? 'block' : 'none';
-  document.querySelectorAll('[contenteditable]').forEach(el => el.contentEditable = editMode);
-  document.querySelectorAll('.status-select').forEach(el => el.disabled = !editMode);
-  document.querySelectorAll('.progress-input').forEach(el => el.disabled = !editMode);
-  document.querySelectorAll('.period-badge').forEach(el => el.contentEditable = editMode);
+function closeDept() {
+  document.getElementById('deptOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+  saveDeptFromDOM();
+}
+
+function buildDeptHTML(id, d) {
+  let h = `<button class="close-btn" onclick="closeDept()">✕</button>`;
+  h += `<h2 contenteditable="true" oninput="deptData['${id}'].name=this.textContent">${d.name}</h2>`;
+  h += `<div class="dept-sub" contenteditable="true">负责人：${d.head}</div>`;
+  h += `<div class="dept-mini-stats" id="deptMiniStats">`;
+  (d.miniStats||[]).forEach((s,i) => {
+    h += `<div class="mini-stat"><button class="card-del" onclick="this.parentElement.remove()">×</button><div class="ms-val" style="color:${s.color}" contenteditable="true">${s.val}</div><div class="ms-lbl" contenteditable="true">${s.label}</div></div>`;
+  });
+  h += `<div class="add-card" onclick="addMiniStat(this)" style="min-height:60px;">+ 添加指标</div></div>`;
+
+  const sections = [
+    {key:'biz',title:'业务重点事项',icon:'🎯'},
+    {key:'pain',title:'部门业务/组织/人才痛点',icon:'⚠️'},
+    {key:'bpWork',title:'BP重点工作',icon:'💼'}
+  ];
+  sections.forEach(s => {
+    h += `<div class="dept-section"><h3 contenteditable="true">${s.icon} ${s.title}</h3><div class="dept-list" data-key="${s.key}">`;
+    (d[s.key]||[]).forEach(item => {
+      h += `<div class="dept-item"><div class="di-dot"></div><div class="di-text" contenteditable="true">${item}</div><button class="li-del" onclick="this.parentElement.remove()">×</button></div>`;
+    });
+    h += `</div><button class="li-add" onclick="addDeptItem(this,'${s.key}')">+ 添加</button></div>`;
+  });
+
+  h += `<div class="dept-section"><h3 contenteditable="true">👤 重点人员信息</h3>`;
+  h += `<div style="overflow-x:auto;"><table class="people-table" id="deptPeopleTable"><thead><tr><th>姓名</th><th>部门</th><th>状态</th><th>备注</th><th style="width:30px;"></th></tr></thead><tbody>`;
+  (d.people||[]).forEach(p => {
+    h += `<tr><td contenteditable="true">${p.name}</td><td contenteditable="true">${p.dept}</td><td contenteditable="true">${p.status}</td><td contenteditable="true">${p.note}</td><td><button class="li-del" style="display:flex;" onclick="this.closest('tr').remove()">×</button></td></tr>`;
+  });
+  h += `</tbody></table></div><button class="li-add" onclick="addPersonRow(this)">+ 添加人员</button></div>`;
+
+  h += `<div class="dept-section"><h3 contenteditable="true">🔗 飞书文档链接</h3><div id="deptLinks">`;
+  (d.links||[]).forEach(lk => {
+    h += `<div class="link-item"><span style="color:var(--text2);font-size:12px;">📎</span><a href="${lk.url}" target="_blank">${lk.title||lk.url}</a><button class="li-del" style="display:flex;" onclick="this.parentElement.remove()">×</button></div>`;
+  });
+  h += `</div><div class="link-add-form"><input placeholder="链接标题" id="linkTitle"><input placeholder="粘贴飞书链接URL" id="linkUrl"><button onclick="addDeptLink()">添加</button></div></div>`;
+
+  h += `<div style="text-align:center;padding:12px 0;"><button class="btn btn-green" onclick="saveDeptFromDOM();closeDept();">保存并关闭</button></div>`;
+  return h;
+}
+
+function saveDeptFromDOM() {
+  const overlay = document.getElementById('deptOverlay');
+  if (!overlay.classList.contains('open')) return;
+  const detail = document.getElementById('deptDetail');
+  const h2 = detail.querySelector('h2');
+  if (!h2) return;
+  const name = h2.textContent;
+  const id = Object.keys(deptData).find(k => deptData[k].name === name) || Object.keys(deptData).find(k => {
+    const card = document.querySelector(`.d-card[data-dept="${k}"]`);
+    return card;
+  });
+  if (!id) return;
+  const d = deptData[id];
+  d.name = name;
+  d.head = detail.querySelector('.dept-sub')?.textContent?.replace('负责人：','') || d.head;
+  d.miniStats = [...detail.querySelectorAll('.mini-stat')].map(el => ({
+    val: el.querySelector('.ms-val')?.textContent||'0',
+    label: el.querySelector('.ms-lbl')?.textContent||'指标',
+    color: el.querySelector('.ms-val')?.style.color||'var(--blue)'
+  }));
+  ['biz','pain','bpWork'].forEach(key => {
+    const list = detail.querySelector(`[data-key="${key}"]`);
+    if (list) d[key] = [...list.querySelectorAll('.di-text')].map(el => el.innerHTML);
+  });
+  const tbody = detail.querySelector('#deptPeopleTable tbody');
+  if (tbody) d.people = [...tbody.querySelectorAll('tr')].map(tr => {
+    const tds = tr.querySelectorAll('td');
+    return {name:tds[0]?.textContent||'',dept:tds[1]?.textContent||'',status:tds[2]?.textContent||'',note:tds[3]?.textContent||''};
+  });
+  const linksEl = detail.querySelector('#deptLinks');
+  if (linksEl) d.links = [...linksEl.querySelectorAll('.link-item')].map(el => ({
+    url: el.querySelector('a')?.href||'',
+    title: el.querySelector('a')?.textContent||''
+  }));
+  localStorage.setItem('dept_'+id, JSON.stringify(d));
+}
+
+function addDeptItem(btn, key) {
+  const list = btn.previousElementSibling;
+  const div = document.createElement('div');
+  div.className = 'dept-item';
+  div.innerHTML = '<div class="di-dot"></div><div class="di-text" contenteditable="true">点击编辑</div><button class="li-del" onclick="this.parentElement.remove()">×</button>';
+  list.appendChild(div);
+  div.querySelector('.di-text').focus();
+}
+
+function addPersonRow(btn) {
+  const tbody = btn.previousElementSibling.querySelector('tbody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = '<td contenteditable="true">姓名</td><td contenteditable="true">部门</td><td contenteditable="true">状态</td><td contenteditable="true">备注</td><td><button class="li-del" style="display:flex;" onclick="this.closest(\'tr\').remove()">×</button></td>';
+  tbody.appendChild(tr);
+  tr.querySelector('td').focus();
+}
+
+function addDeptLink() {
+  const title = document.getElementById('linkTitle').value || '未命名链接';
+  const url = document.getElementById('linkUrl').value;
+  if (!url) { showToast('请输入链接URL'); return; }
+  const container = document.getElementById('deptLinks');
+  const div = document.createElement('div');
+  div.className = 'link-item';
+  div.innerHTML = `<span style="color:var(--text2);font-size:12px;">📎</span><a href="${url}" target="_blank">${title}</a><button class="li-del" style="display:flex;" onclick="this.parentElement.remove()">×</button>`;
+  container.appendChild(div);
+  document.getElementById('linkTitle').value = '';
+  document.getElementById('linkUrl').value = '';
+}
+
+function addMiniStat(btn) {
+  const div = document.createElement('div');
+  div.className = 'mini-stat';
+  div.innerHTML = '<button class="card-del" onclick="this.parentElement.remove()">×</button><div class="ms-val" style="color:var(--blue)" contenteditable="true">0</div><div class="ms-lbl" contenteditable="true">指标名</div>';
+  btn.parentElement.insertBefore(div, btn);
+}
+
+function initDeptSortables(el) {
+  el.querySelectorAll('.dept-list').forEach(list => {
+    new Sortable(list, { animation:150, ghostClass:'sortable-ghost' });
+  });
+}
+
+/* ===== Section & Card Operations ===== */
+function delSection(btn) {
+  if (confirm('确定删除整个板块？')) btn.closest('.section').remove();
+}
+
+function addCardTo(btn, type) {
+  const section = btn.closest('.section');
+  const grid = section.querySelector('.cards');
+  if (!grid) return;
+  const card = document.createElement('div');
+  if (type === 'stat') {
+    card.className = 's-card info';
+    card.innerHTML = '<button class="card-del" onclick="event.stopPropagation();this.parentElement.remove()">×</button><div class="lbl" contenteditable="true">指标名</div><div class="val" contenteditable="true">0</div><div class="sub" contenteditable="true">说明</div>';
+  } else {
+    card.className = 'i-card';
+    card.innerHTML = '<button class="card-del" onclick="event.stopPropagation();this.parentElement.remove()">×</button><h4 contenteditable="true">新卡片标题</h4><ul><li><span class="li-text" contenteditable="true">点击编辑</span><button class="li-del" onclick="this.parentElement.remove()">×</button></li></ul><button class="li-add" onclick="addListItem(this)">+ 添加</button>';
+  }
+  grid.appendChild(card);
+}
+
+function addListItem(btn) {
+  const ul = btn.previousElementSibling;
+  const li = document.createElement('li');
+  li.innerHTML = '<span class="li-text" contenteditable="true">点击编辑内容</span><button class="li-del" onclick="this.parentElement.remove()">×</button>';
+  ul.appendChild(li);
+  li.querySelector('.li-text').focus();
+}
+
+function addDeptCard(btn) {
+  const grid = btn.closest('.section').querySelector('.cards');
+  const id = 'dept_' + Date.now();
+  deptData[id] = {name:'新部门',head:'负责人',headcount:0,turnover:0,miniStats:[{label:'总人数',val:'0',color:'var(--blue)'},{label:'离职',val:'0',color:'var(--red)'}],biz:['待编辑'],pain:['待编辑'],bpWork:['待编辑'],people:[],links:[]};
+  const card = document.createElement('div');
+  card.className = 'd-card';
+  card.dataset.dept = id;
+  card.onclick = () => openDept(id);
+  card.innerHTML = `<button class="card-del" onclick="event.stopPropagation();this.parentElement.remove()">×</button><div class="d-head"><div><div class="d-name">新部门</div><div class="d-leader">负责人：待编辑</div></div></div><div class="d-stats"><div class="d-stat"><div class="d-num" style="color:var(--blue)">0</div><div class="d-label">总人数</div></div><div class="d-stat"><div class="d-num" style="color:var(--red)">0</div><div class="d-label">离职</div></div></div><span class="d-enter">点击进入详情 →</span>`;
+  grid.appendChild(card);
+}
+
+function addNewSection() {
+  const section = document.createElement('div');
+  section.className = 'section';
+  section.innerHTML = `<div class="section-header"><div class="section-title" contenteditable="true">新板块</div><div class="section-actions"><button class="icon-btn add" onclick="addCardTo(this,'info')" title="添加卡片">+</button><button class="icon-btn del" onclick="delSection(this)" title="删除板块">×</button></div></div><div class="cards wide info-cards"></div>`;
+  const addBtn = document.querySelector('.add-section');
+  addBtn.parentElement.insertBefore(section, addBtn);
+  initCardSortable(section.querySelector('.cards'));
+  section.querySelector('.section-title').focus();
+}
+
+/* ===== Template Drag from Sidebar ===== */
+function createFromTemplate(type) {
+  const tpls = {
+    stat: () => { const d=document.createElement('div');d.className='s-card info';d.innerHTML='<button class="card-del" onclick="event.stopPropagation();this.parentElement.remove()">×</button><div class="lbl" contenteditable="true">指标名</div><div class="val" contenteditable="true">0</div><div class="sub" contenteditable="true">说明</div>';return d; },
+    info: () => { const d=document.createElement('div');d.className='i-card';d.innerHTML='<button class="card-del" onclick="event.stopPropagation();this.parentElement.remove()">×</button><h4 contenteditable="true">信息卡片</h4><ul><li><span class="li-text" contenteditable="true">点击编辑</span><button class="li-del" onclick="this.parentElement.remove()">×</button></li></ul><button class="li-add" onclick="addListItem(this)">+ 添加</button>';return d; },
+    task: () => { const d=document.createElement('div');d.className='i-card green';d.innerHTML='<button class="card-del" onclick="event.stopPropagation();this.parentElement.remove()">×</button><h4 contenteditable="true">✅ 任务清单</h4><ul><li><span class="li-text" contenteditable="true"><strong>✓</strong> 已完成任务</span><button class="li-del" onclick="this.parentElement.remove()">×</button></li><li><span class="li-text" contenteditable="true"><strong>◷</strong> 待办任务</span><button class="li-del" onclick="this.parentElement.remove()">×</button></li></ul><button class="li-add" onclick="addListItem(this)">+ 添加</button>';return d; },
+    people: () => { const d=document.createElement('div');d.className='i-card blue';d.innerHTML='<button class="card-del" onclick="event.stopPropagation();this.parentElement.remove()">×</button><h4 contenteditable="true">👤 人员信息</h4><div style="overflow-x:auto;"><table class="people-table"><thead><tr><th>姓名</th><th>部门</th><th>状态</th><th>备注</th><th style="width:30px;"></th></tr></thead><tbody><tr><td contenteditable="true">姓名</td><td contenteditable="true">部门</td><td contenteditable="true">状态</td><td contenteditable="true">备注</td><td><button class="li-del" style="display:flex;" onclick="this.closest(\'tr\').remove()">×</button></td></tr></tbody></table></div><button class="li-add" onclick="addPersonRowInCard(this)">+ 添加人员</button>';return d; },
+    links: () => { const d=document.createElement('div');d.className='i-card';d.innerHTML='<button class="card-del" onclick="event.stopPropagation();this.parentElement.remove()">×</button><h4 contenteditable="true">🔗 链接集合</h4><div class="link-list"></div><div class="link-add-form"><input placeholder="标题"><input placeholder="URL"><button onclick="addLinkInCard(this)">添加</button></div>';return d; },
+    text: () => { const d=document.createElement('div');d.className='i-card';d.innerHTML='<button class="card-del" onclick="event.stopPropagation();this.parentElement.remove()">×</button><h4 contenteditable="true">📝 自由文本</h4><div contenteditable="true" style="min-height:50px;font-size:13px;color:var(--text2);">点击编辑内容...</div>';return d; },
+    progress: () => { const d=document.createElement('div');d.className='i-card';d.innerHTML='<button class="card-del" onclick="event.stopPropagation();this.parentElement.remove()">×</button><h4 contenteditable="true">📈 进度追踪</h4><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><input type="range" min="0" max="100" value="50" style="flex:1;accent-color:var(--accent);" oninput="this.nextElementSibling.textContent=this.value+\'%\'"><span style="font-size:12px;color:var(--text2);">50%</span></div><ul><li><span class="li-text" contenteditable="true">里程碑1</span><button class="li-del" onclick="this.parentElement.remove()">×</button></li></ul><button class="li-add" onclick="addListItem(this)">+ 添加</button>';return d; },
+    dept: () => { addDeptCard({closest:s=>document.querySelector('.section[data-section=dept]')||document.querySelector('.section:last-of-type')}); return null; }
+  };
+  const fn = tpls[type];
+  return fn ? fn() : null;
+}
+
+function addPersonRowInCard(btn) {
+  const tbody = btn.previousElementSibling.querySelector('tbody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = '<td contenteditable="true">姓名</td><td contenteditable="true">部门</td><td contenteditable="true">状态</td><td contenteditable="true">备注</td><td><button class="li-del" style="display:flex;" onclick="this.closest(\'tr\').remove()">×</button></td>';
+  tbody.appendChild(tr);
+}
+
+function addLinkInCard(btn) {
+  const form = btn.closest('.link-add-form');
+  const inputs = form.querySelectorAll('input');
+  const title = inputs[0].value || '链接';
+  const url = inputs[1].value;
+  if (!url) return;
+  const list = form.previousElementSibling;
+  const div = document.createElement('div');
+  div.className = 'link-item';
+  div.innerHTML = `<span style="color:var(--text2);font-size:12px;">📎</span><a href="${url}" target="_blank">${title}</a><button class="li-del" style="display:flex;" onclick="this.parentElement.remove()">×</button>`;
+  list.appendChild(div);
+  inputs[0].value = '';
+  inputs[1].value = '';
+}
+
+/* ===== Sidebar Toggle ===== */
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+/* ===== Save / Load / Export ===== */
+function saveAll() {
+  const html = document.getElementById('content').innerHTML;
+  localStorage.setItem('hrbp_v2_content', html);
+  Object.keys(deptData).forEach(k => localStorage.setItem('dept_'+k, JSON.stringify(deptData[k])));
+  showToast('已保存');
+}
+
+function loadAll() {
+  const saved = localStorage.getItem('hrbp_v2_content');
+  if (saved) { document.getElementById('content').innerHTML = saved; showToast('已加载'); }
+  Object.keys(deptData).forEach(k => {
+    const s = localStorage.getItem('dept_'+k);
+    if (s) { try { Object.assign(deptData[k], JSON.parse(s)); } catch(e){} }
+  });
+  initAllSortables();
+}
+
+function resetAll() {
+  if (!confirm('确定重置所有修改？')) return;
+  Object.keys(localStorage).forEach(k => { if(k.startsWith('hrbp_')||k.startsWith('dept_')) localStorage.removeItem(k); });
+  location.reload();
+}
+
+function exportHTML() {
+  const blob = new Blob([document.documentElement.outerHTML],{type:'text/html'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'HRBP月报看板_'+new Date().toISOString().slice(0,10)+'.html';
+  a.click();
+  showToast('已导出');
 }
 
 function showToast(msg) {
   const t = document.getElementById('toast');
-  t.textContent = msg || '已保存';
+  t.textContent = msg;
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2000);
 }
 
-function saveData() {
-  const content = document.querySelector('.container').innerHTML;
-  localStorage.setItem('hrbp_dashboard_v1', content);
-  showToast('已保存到浏览器');
+/* ===== Initialize Sortable ===== */
+function initCardSortable(grid) {
+  if (!grid) return;
+  new Sortable(grid, {
+    animation: 150,
+    ghostClass: 'sortable-ghost',
+    handle: grid.classList.contains('dept-cards') ? undefined : undefined,
+    group: { name:'cards', pull:false, put:true },
+    onAdd(evt) {
+      const tpl = evt.item.dataset?.tpl;
+      if (tpl) {
+        const card = createFromTemplate(tpl);
+        if (card) { evt.item.replaceWith(card); } else { evt.item.remove(); }
+      }
+    }
+  });
 }
 
-function loadData() {
-  const saved = localStorage.getItem('hrbp_dashboard_v1');
-  if (saved) { document.querySelector('.container').innerHTML = saved; showToast('已加载保存的数据'); }
+function initAllSortables() {
+  new Sortable(document.getElementById('content'), {
+    animation: 200,
+    ghostClass: 'sortable-ghost',
+    handle: '.section-title',
+    draggable: '.section',
+    filter: '.add-section'
+  });
+
+  document.querySelectorAll('.cards').forEach(grid => initCardSortable(grid));
+
+  new Sortable(document.getElementById('tplList'), {
+    animation: 150,
+    sort: false,
+    group: { name:'cards', pull:'clone', put:false },
+    onEnd(evt) {
+      if (evt.to === evt.from) return;
+    }
+  });
 }
 
-function resetData() {
-  if (confirm('确定要重置所有修改吗？此操作不可撤销。')) {
-    localStorage.removeItem('hrbp_dashboard_v1');
-    location.reload();
-  }
-}
-
-function exportHTML() {
-  const html = document.documentElement.outerHTML;
-  const blob = new Blob([html], { type: 'text/html' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'HRBP月报看板_' + new Date().toISOString().slice(0,10) + '.html';
-  a.click();
-  showToast('已导出HTML文件');
-}
-
-function addAlertItem(btn) {
-  const ul = btn.previousElementSibling;
-  const li = document.createElement('li');
-  li.innerHTML = '<span class="alert-text" contenteditable="true"><strong>新增项</strong> — 点击编辑内容</span><button class="delete-btn" style="display:flex;align-items:center;justify-content:center;" onclick="this.parentElement.remove()">×</button>';
-  ul.appendChild(li);
-  li.querySelector('.alert-text').focus();
-}
-
-function addTaskItem(btn) {
-  const list = btn.previousElementSibling;
-  const div = document.createElement('div');
-  div.className = 'task-item';
-  div.innerHTML = '<span class="icon task-pending" onclick="toggleTask(this)">◷</span><span class="task-text" contenteditable="true">点击编辑任务内容</span><button class="delete-btn" style="display:flex;align-items:center;justify-content:center;" onclick="this.parentElement.remove()">×</button>';
-  list.appendChild(div);
-  div.querySelector('.task-text').focus();
-}
-
-function addReportItem(btn) {
-  const ol = btn.previousElementSibling;
-  const li = document.createElement('li');
-  li.innerHTML = '<span class="report-text" contenteditable="true"><strong>新要点：</strong>点击编辑内容</span><button class="delete-btn" style="display:flex;align-items:center;justify-content:center;" onclick="this.parentElement.remove()">×</button>';
-  ol.appendChild(li);
-  li.querySelector('.report-text').focus();
-}
-
-function addLeaderRow() {
-  const tbody = document.querySelector('#leaderTable tbody');
-  const tr = document.createElement('tr');
-  tr.innerHTML = '<td contenteditable="true"><strong>新姓名</strong></td><td contenteditable="true">部门</td><td><select class="status-select" onchange="updateDot(this)"><option value="green">见习中</option><option value="orange" selected>待答辩</option><option value="red">暂缓</option></select></td><td contenteditable="true">评价要点</td><td><span class="tag tag-orange" contenteditable="true">风险</span></td><td><button class="delete-btn" style="display:flex;align-items:center;justify-content:center;" onclick="this.closest(\'tr\').remove()">×</button></td>';
-  tbody.appendChild(tr);
-}
-
-function addTimelineItem() {
-  const tl = document.getElementById('timeline');
-  const div = document.createElement('div');
-  div.className = 'timeline-item';
-  div.innerHTML = '<div class="tl-status" contenteditable="true">进行中</div><div class="tl-dot" style="background:var(--orange);" onclick="cycleColor(this)"></div><div class="tl-content" contenteditable="true"><strong>新事项</strong> — 点击编辑</div><button class="delete-btn" style="display:flex;align-items:center;justify-content:center;" onclick="this.parentElement.remove()">×</button>';
-  tl.appendChild(div);
-}
-
-function toggleTask(icon) {
-  if (!editMode) return;
-  const isDone = icon.classList.contains('task-done');
-  icon.className = 'icon ' + (isDone ? 'task-pending' : 'task-done');
-  icon.textContent = isDone ? '◷' : '✓';
-}
-
-function updateProgress(input) {
-  const fill = input.nextElementSibling.querySelector('.fill');
-  fill.style.width = input.value + '%';
-}
-
-function cycleColor(dot) {
-  if (!editMode) return;
-  const colors = ['var(--green)','var(--orange)','var(--blue)','var(--accent)','var(--red)'];
-  const current = dot.style.background;
-  let idx = colors.findIndex(c => current.includes(c.replace('var(--','').replace(')','')));
-  dot.style.background = colors[(idx + 1) % colors.length];
-}
-
-function updateDot(select) {}
-
-function addStatCard(btn) {
-  const card = document.createElement('div');
-  card.className = 'stat-card info module-card';
-  card.innerHTML = '<button class="module-del" onclick="this.parentElement.remove()">×</button><div class="label" contenteditable="true">指标名称</div><div class="value" contenteditable="true">0</div><div class="sub" contenteditable="true">点击编辑说明</div>';
-  btn.parentElement.insertBefore(card, btn);
-  card.querySelector('.label').focus();
-}
-
-function addAlertCard(btn) {
-  const colors = ['','orange','blue'];
-  const icons = ['🔴','🟡','🔵'];
-  const card = document.createElement('div');
-  card.className = 'alert-card module-card';
-  card.innerHTML = '<button class="module-del" onclick="this.parentElement.remove()">×</button><h3 contenteditable="true">🔴 新预警类别</h3><ul class="alert-list"><li><span class="alert-text" contenteditable="true"><strong>待编辑</strong> — 点击编辑内容</span><button class="delete-btn" style="display:flex;align-items:center;justify-content:center;" onclick="this.parentElement.remove()">×</button></li></ul><button class="add-btn" style="display:block;" onclick="addAlertItem(this)">+ 添加预警项</button>';
-  btn.parentElement.insertBefore(card, btn);
-  card.querySelector('h3').focus();
-}
-
-function addBPCard(btn) {
-  const card = document.createElement('div');
-  card.className = 'bp-card module-card';
-  card.innerHTML = '<button class="module-del" onclick="this.parentElement.remove()">×</button><h3 contenteditable="true">新BP姓名</h3><div class="scope" contenteditable="true">负责部门</div><input type="range" class="progress-input" min="0" max="100" value="0" oninput="updateProgress(this)" style="display:inline-block;"><div class="progress-bar"><div class="fill" style="width:0%;background:linear-gradient(90deg,var(--accent),var(--blue))"></div></div><div class="task-list"></div><button class="add-btn" style="display:block;" onclick="addTaskItem(this)">+ 添加任务</button>';
-  btn.parentElement.insertBefore(card, btn);
-  card.querySelector('h3').focus();
-}
-
-function addReportCard(btn) {
-  const card = document.createElement('div');
-  card.className = 'report-card module-card';
-  card.innerHTML = '<button class="module-del" onclick="this.parentElement.remove()">×</button><h3 contenteditable="true">📋 向XXX汇报</h3><ol class="report-list"><li><span class="report-text" contenteditable="true"><strong>要点：</strong>点击编辑</span><button class="delete-btn" style="display:flex;align-items:center;justify-content:center;" onclick="this.parentElement.remove()">×</button></li></ol><button class="add-btn" style="display:block;" onclick="addReportItem(this)">+ 添加要点</button>';
-  btn.parentElement.insertBefore(card, btn);
-  card.querySelector('h3').focus();
-}
-
-function addSection(btn) {
-  const type = prompt('选择板块类型：\n1 - 预警/信息卡片\n2 - 表格\n3 - 自由文本\n\n输入数字：');
-  if (!type) return;
-  const section = document.createElement('div');
-  section.className = 'section';
-  let inner = '<div class="section-header"><div class="section-title" contenteditable="true">新板块标题</div><button class="section-del" onclick="deleteSection(this)">×</button></div>';
-  if (type === '2') {
-    inner += '<div class="table-wrap"><table class="leader-table"><thead><tr><th>列1</th><th>列2</th><th>列3</th><th>操作</th></tr></thead><tbody><tr><td contenteditable="true">数据</td><td contenteditable="true">数据</td><td contenteditable="true">数据</td><td><button class="delete-btn" style="display:flex;align-items:center;justify-content:center;" onclick="this.closest(\'tr\').remove()">×</button></td></tr></tbody></table></div><button class="add-btn" style="display:block;" onclick="addTableRow(this)">+ 添加行</button>';
-  } else if (type === '3') {
-    inner += '<div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;"><div contenteditable="true" style="min-height:60px;color:var(--text-secondary);">点击编辑自由文本内容...</div></div>';
-  } else {
-    inner += '<div class="alerts-grid"><div class="alert-card module-card"><button class="module-del" onclick="this.parentElement.remove()">×</button><h3 contenteditable="true">标题</h3><ul class="alert-list"><li><span class="alert-text" contenteditable="true"><strong>条目</strong> — 点击编辑</span><button class="delete-btn" style="display:flex;align-items:center;justify-content:center;" onclick="this.parentElement.remove()">×</button></li></ul><button class="add-btn" style="display:block;" onclick="addAlertItem(this)">+ 添加项</button></div><button class="grid-add" style="display:flex;" onclick="addAlertCard(this)">+ 添加卡片</button></div>';
-  }
-  section.innerHTML = inner;
-  btn.parentElement.insertBefore(section, btn);
-}
-
-function deleteSection(btn) {
-  if (confirm('确定删除整个板块？')) btn.closest('.section').remove();
-}
-
-function addTableRow(btn) {
-  const tbody = btn.previousElementSibling.querySelector('tbody');
-  const cols = tbody.closest('table').querySelectorAll('th').length - 1;
-  const tr = document.createElement('tr');
-  let html = '';
-  for (let i = 0; i < cols; i++) html += '<td contenteditable="true">数据</td>';
-  html += '<td><button class="delete-btn" style="display:flex;align-items:center;justify-content:center;" onclick="this.closest(\'tr\').remove()">×</button></td>';
-  tr.innerHTML = html;
-  tbody.appendChild(tr);
-}
-
+/* ===== Keyboard Shortcut ===== */
 document.addEventListener('keydown', e => {
-  if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); saveData(); }
+  if ((e.metaKey||e.ctrlKey) && e.key === 's') { e.preventDefault(); saveAll(); }
 });
+
+/* ===== Init ===== */
+loadAll();
+if (!localStorage.getItem('hrbp_v2_content')) initAllSortables();
 </script>
 </body>
 </html>
